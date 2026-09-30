@@ -1,0 +1,40 @@
+{
+  "name": "@gymflow/web",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p tsconfig.json && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@gymflow/shared": "*",
+    "@hookform/resolvers": "^5.2.2",
+    "@tanstack/react-query": "^5.90.0",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.577.0",
+    "qr-scanner": "^1.4.2",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.65.0",
+    "react-router": "^7.9.0",
+    "recharts": "^3.2.1",
+    "sonner": "^2.0.7",
+    "write-excel-file": "^2.3.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.14",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.4",
+    "tailwindcss": "^4.1.14",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.9"
+  }
+}

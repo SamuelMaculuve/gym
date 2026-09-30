@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { computeEndDate, evaluateSubscription, nextPeriodStart } from './subscription-status.ts';
-import { latestOverdueThreshold, resolveReminderCandidates, type ReminderSettings } from './reminders.ts';
+import { computeEndDate, evaluateSubscription, nextPeriodStart } from './subscription-status';
+import { latestOverdueThreshold, resolveReminderCandidates, type ReminderSettings } from './reminders';
 
 const rules = { dueSoonDays: 7, expireAfterDays: 30 };
 const base = { startDate: '2026-09-01', endDate: '2026-09-30', amountCents: 150000, amountPaidCents: 150000, state: 'NORMAL' as const };

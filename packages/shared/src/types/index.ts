@@ -15,6 +15,7 @@ import type {
 import type { AttendanceStats } from '../domain/attendance';
 import type { ISODate } from '../domain/dates';
 import type { ReminderSettings } from '../domain/reminders';
+import type { StatusRules } from '../domain/subscription-status';
 
 /** Datas-hora (instantes) são sempre strings ISO 8601 em UTC. */
 export type ISODateTime = string;
@@ -62,6 +63,7 @@ export interface GymPublic {
   currency: string;
   timezone: string;
   today: ISODate;
+  rules: StatusRules;
 }
 
 export interface GymSettings {
@@ -141,6 +143,7 @@ export interface MemberListItem {
   fullName: string;
   phone: string;
   email: string | null;
+  planId: string | null;
   planName: string | null;
   joinedAt: ISODate;
   dueDate: ISODate | null;

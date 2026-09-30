@@ -1,0 +1,344 @@
+// GymFlow — modelo relacional.
+// Desenvolvimento: SQLite. Produção: altere provider para "postgresql" e DATABASE_URL.
+// Enumerações são guardadas como texto e validadas pelos schemas Zod em @gymflow/shared,
+// para manter o mesmo schema compatível com SQLite e PostgreSQL.
+// Datas de calendário (YYYY-MM-DD, fuso do ginásio) são String; instantes são DateTime (UTC).
+// Valores monetários em cêntimos (Int).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Gym {
+  id                 String   @id @default(cuid())
+  name               String
+  logoUrl            String?
+  phone              String?
+  email              String?
+  address            String?
+  whatsapp           String?
+  currency           String   @default("MZN")
+  timezone           String   @default("Africa/Maputo")
+  /// JSON: number[] (1 = segunda ... 7 = domingo)
+  openingDays        String   @default("[1,2,3,4,5,6]")
+  openingTime        String   @default("05:30")
+  closingTime        String   @default("21:00")
+  memberCodePrefix   String   @default("GYM")
+  memberSequence     Int      @default(0)
+  receiptSequence    Int      @default(0)
+  dueSoonDays        Int      @default(7)
+  expireAfterDays    Int      @default(30)
+  paymentLinkEnabled Boolean  @default(true)
+  /// JSON: ReminderSettings (ver @gymflow/shared/domain/reminders)
+  notificationSettings String
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  users         User[]
+  members       Member[]
+  plans         Plan[]
+  subscriptions Subscription[]
+  payments      Payment[]
+  attendances   Attendance[]
+  notifications Notification[]
+  templates     NotificationTemplate[]
+  auditLogs     AuditLog[]
+  paymentLinks  PaymentLink[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  gymId        String
+  gym          Gym       @relation(fields: [gymId], references: [id])
+  name         String
+  email        String    @unique
+  passwordHash String
+  /// ADMIN | MANAGER | RECEPTIONIST | ACCOUNTANT
+  role         String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sessions          Session[]
+  passwordResets    PasswordReset[]
+  paymentsReceived  Payment[]      @relation("PaymentReceivedBy")
+  paymentsCancelled Payment[]      @relation("PaymentCancelledBy")
+  attendances       Attendance[]
+  auditLogs         AuditLog[]
+
+  @@index([gymId])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// SHA-256 do token opaco entregue ao cliente
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ip         String?
+  lastUsedAt DateTime  @default(now())
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model PasswordReset {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+model Member {
+  id                    String   @id @default(cuid())
+  gymId                 String
+  gym                   Gym      @relation(fields: [gymId], references: [id])
+  /// Número de membro, ex.: GYM-000001
+  code                  String
+  /// Identificador aleatório codificado no QR Code (sem dados pessoais)
+  qrToken               String   @unique
+  fullName              String
+  /// E.164 sem "+", ex.: 258841234567
+  phone                 String
+  email                 String?
+  birthDate             String?
+  /// MALE | FEMALE | OTHER
+  gender                String?
+  address               String?
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  notes                 String?
+  joinedAt              String
+  active                Boolean  @default(true)
+  notificationsEnabled  Boolean  @default(true)
+  /// Desnormalizado: período actual (mantido por refreshMemberDerived)
+  currentSubscriptionId String?       @unique
+  currentSubscription   Subscription? @relation("CurrentSubscription", fields: [currentSubscriptionId], references: [id])
+  /// Desnormalizado: data do último pagamento válido
+  lastPaymentDate       String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  subscriptions Subscription[] @relation("MemberSubscriptions")
+  payments      Payment[]
+  attendances   Attendance[]
+  notifications Notification[]
+
+  @@unique([gymId, code])
+  @@index([gymId, fullName])
+  @@index([gymId, phone])
+}
+
+model Plan {
+  id            String   @id @default(cuid())
+  gymId         String
+  gym           Gym      @relation(fields: [gymId], references: [id])
+  name          String
+  description   String?
+  priceCents    Int
+  durationDays  Int
+  /// Texto livre, ex.: "1 mês"
+  durationLabel String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+
+  @@index([gymId])
+}
+
+/// Um registo por período de subscrição. Renovar cria um novo período.
+model Subscription {
+  id              String    @id @default(cuid())
+  gymId           String
+  gym             Gym       @relation(fields: [gymId], references: [id])
+  memberId        String
+  member          Member    @relation("MemberSubscriptions", fields: [memberId], references: [id])
+  currentFor      Member?   @relation("CurrentSubscription")
+  planId          String
+  plan            Plan      @relation(fields: [planId], references: [id])
+  startDate       String
+  endDate         String
+  /// Valor do período (cópia do preço do plano no momento da criação)
+  amountCents     Int
+  /// Soma dos pagamentos válidos associados (mantida pelo serviço de pagamentos)
+  amountPaidCents Int       @default(0)
+  paidAt          DateTime?
+  /// NORMAL | SUSPENDED | CANCELLED — o estado de negócio é calculado em @gymflow/shared
+  state           String    @default("NORMAL")
+  stateReason     String?
+  suspendedAt     DateTime?
+  cancelledAt     DateTime?
+  remindersPaused Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  payments      Payment[]
+  notifications Notification[]
+  paymentLinks  PaymentLink[]
+
+  @@index([gymId, memberId])
+  @@index([gymId, endDate])
+}
+
+/// Pagamentos nunca são eliminados: cancelamento/estorno altera o estado.
+model Payment {
+  id             String        @id @default(cuid())
+  gymId          String
+  gym            Gym           @relation(fields: [gymId], references: [id])
+  receiptNumber  String
+  memberId       String
+  member         Member        @relation(fields: [memberId], references: [id])
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  amountCents    Int
+  /// Data local do pagamento (YYYY-MM-DD)
+  paymentDate    String
+  /// CASH | MPESA | EMOLA | BANK_TRANSFER | CARD | OTHER
+  method         String
+  reference      String?
+  notes          String?
+  /// PAID | CANCELLED | REFUNDED
+  status         String        @default("PAID")
+  /// MANUAL | ONLINE
+  source         String        @default("MANUAL")
+  /// Identificador no gateway (pagamentos online futuros)
+  externalId     String?
+  receivedById   String?
+  receivedBy     User?         @relation("PaymentReceivedBy", fields: [receivedById], references: [id])
+  cancelledById  String?
+  cancelledBy    User?         @relation("PaymentCancelledBy", fields: [cancelledById], references: [id])
+  cancelledAt    DateTime?
+  cancelReason   String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([gymId, receiptNumber])
+  @@index([gymId, paymentDate])
+  @@index([gymId, memberId])
+  @@index([reference])
+}
+
+/// Link "Pagar agora" — preparado para M-Pesa, e-Mola ou gateway próprio.
+model PaymentLink {
+  id             String       @id @default(cuid())
+  gymId          String
+  gym            Gym          @relation(fields: [gymId], references: [id])
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id])
+  token          String       @unique
+  amountCents    Int
+  /// OPEN | PAID | EXPIRED | CANCELLED
+  status         String       @default("OPEN")
+  provider       String?
+  externalRef    String?
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([subscriptionId])
+}
+
+model Attendance {
+  id                 String    @id @default(cuid())
+  gymId              String
+  gym                Gym       @relation(fields: [gymId], references: [id])
+  memberId           String
+  member             Member    @relation(fields: [memberId], references: [id])
+  /// Data local (YYYY-MM-DD)
+  date               String
+  checkInAt          DateTime
+  checkOutAt         DateTime?
+  /// QR | CODE | PHONE | NAME | MANUAL
+  method             String
+  /// Estado da subscrição no momento do check-in
+  subscriptionStatus String?
+  /// Entrada autorizada apesar de subscrição inválida
+  overridden         Boolean   @default(false)
+  notes              String?
+  registeredById     String?
+  registeredBy       User?     @relation(fields: [registeredById], references: [id])
+  createdAt          DateTime  @default(now())
+
+  @@index([gymId, date])
+  @@index([memberId, date])
+}
+
+model Notification {
+  id                String        @id @default(cuid())
+  gymId             String
+  gym               Gym           @relation(fields: [gymId], references: [id])
+  memberId          String?
+  member            Member?       @relation(fields: [memberId], references: [id])
+  subscriptionId    String?
+  subscription      Subscription? @relation(fields: [subscriptionId], references: [id])
+  /// WHATSAPP | EMAIL | SMS
+  channel           String
+  type              String
+  recipient         String
+  subject           String?
+  message           String
+  /// PENDING | SENT | FAILED | SKIPPED
+  status            String        @default("PENDING")
+  error             String?
+  provider          String?
+  providerMessageId String?
+  /// Garante que o mesmo lembrete não é enviado duas vezes
+  dedupeKey         String?       @unique
+  /// "system" ou id do utilizador
+  triggeredBy       String        @default("system")
+  sentAt            DateTime?
+  createdAt         DateTime      @default(now())
+
+  @@index([gymId, createdAt])
+  @@index([memberId])
+}
+
+model NotificationTemplate {
+  id        String   @id @default(cuid())
+  gymId     String
+  gym       Gym      @relation(fields: [gymId], references: [id])
+  type      String
+  channel   String
+  subject   String?
+  body      String
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@unique([gymId, type, channel])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  gymId     String
+  gym       Gym      @relation(fields: [gymId], references: [id])
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  action    String
+  entity    String
+  entityId  String?
+  summary   String
+  /// JSON
+  before    String?
+  /// JSON
+  after     String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([gymId, createdAt])
+  @@index([entity, entityId])
+}
