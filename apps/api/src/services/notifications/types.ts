@@ -1,14 +1,39 @@
-import type { NotificationChannel } from '@gymflow/shared';
+import type { NotificationChannel, NotificationType } from '@gymflow/shared';
+
+/** Dados estruturados da mensagem, para fornecedores baseados em templates (ex.: webhook). */
+export interface MessageContext {
+  type: NotificationType;
+  memberName: string;
+  memberCode: string;
+  gymName: string;
+  planName: string;
+  /** Data de vencimento formatada (dd/mm/aaaa) */
+  dueDate: string;
+  amount: string;
+  paymentLink: string;
+}
 
 export interface OutgoingMessage {
   to: string;
   subject?: string | null;
   text: string;
   html?: string;
+  context?: MessageContext;
 }
 
 export interface SendResult {
   providerMessageId?: string;
+}
+
+/**
+ * O fornecedor não suporta este tipo de mensagem (ex.: o webhook só tem templates de
+ * lembrete e de aviso). A notificação fica registada como "Ignorada", não como falha.
+ */
+export class UnsupportedMessageError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'UnsupportedMessageError';
+  }
 }
 
 /**

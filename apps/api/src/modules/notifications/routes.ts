@@ -4,6 +4,8 @@ import {
   DEFAULT_TEMPLATES,
   defaultTemplate,
   notificationListQuery,
+  reminderSendSchema,
+  NOTIFICATION_TYPE_LABELS,
   sendNotificationSchema,
   templateUpdateSchema,
   type NotificationChannel,
@@ -15,7 +17,7 @@ import { z } from 'zod';
 import { audit } from '../../lib/audit';
 import { badRequest, notFound } from '../../lib/errors';
 import { getGymContext } from '../../lib/gym';
-import { memberRefSelect, toNotificationDTO } from '../../lib/mappers';
+import { evaluate, memberRefSelect, toNotificationDTO } from '../../lib/mappers';
 import { prisma } from '../../lib/prisma';
 import { pageMeta } from '../../lib/utils';
 import { actorOf, currentUser, requirePermission } from '../../middleware/auth';
@@ -54,7 +56,7 @@ notificationsRouter.get('/', requirePermission('notifications:read'), async (req
     ...(q.type ? { type: q.type } : {}),
     ...(q.status ? { status: q.status } : {}),
     ...(q.memberId ? { memberId: q.memberId } : {}),
-    ...(q.q ? { OR: [{ recipient: { contains: q.q } }, { member: { fullName: { contains: q.q } } }, { message: { contains: q.q } }] } : {}),
+    ...(q.q ? { OR: [{ recipient: { contains: q.q, mode: 'insensitive' } }, { member: { fullName: { contains: q.q, mode: 'insensitive' } } }, { message: { contains: q.q, mode: 'insensitive' } }] } : {}),
   };
   const [total, items] = await Promise.all([
     prisma.notification.count({ where }),
@@ -79,6 +81,7 @@ notificationsRouter.post('/send', requirePermission('notifications:write', 'memb
     include: { currentSubscription: { include: { plan: true } } },
   });
   if (!member) throw notFound('Membro não encontrado');
+  if (!member.notificationsEnabled) throw badRequest('As notificações estão desactivadas para este membro. Active-as no perfil para enviar.');
   if (input.type === 'CUSTOM' && !input.message) throw badRequest('Escreva a mensagem');
 
   const results = await notificationService.notifyMember({
@@ -90,11 +93,52 @@ notificationsRouter.post('/send', requirePermission('notifications:write', 'memb
     customSubject: input.subject,
     customMessage: input.message || null,
     triggeredBy: user.id,
-    ignoreMemberPreference: true,
   });
   const ids = results.map((r) => r.notificationId).filter(Boolean) as string[];
   const rows = await prisma.notification.findMany({ where: { id: { in: ids } }, include: { member: { select: memberRefSelect } } });
   res.json(rows.map(toNotificationDTO));
+});
+
+/**
+ * Envio manual e individual de um lembrete. Escolhe o tipo pelo estado da subscrição
+ * (auto) ou força "lembrete" / "aviso de atraso". Não usa deduplicação: é uma acção explícita.
+ */
+notificationsRouter.post('/remind', requirePermission('notifications:write', 'members:write'), async (req, res) => {
+  const user = currentUser(req);
+  const input = body(req, reminderSendSchema);
+  const ctx = await getGymContext(user.gymId);
+  const member = await prisma.member.findFirst({
+    where: { id: input.memberId, gymId: user.gymId },
+    include: { currentSubscription: { include: { plan: true } } },
+  });
+  if (!member) throw notFound('Membro não encontrado');
+  if (!member.notificationsEnabled) throw badRequest('As notificações estão desactivadas para este membro. Active-as no perfil para enviar.');
+  const sub = member.currentSubscription;
+  if (!sub || sub.state === 'CANCELLED') throw badRequest('O membro não tem uma subscrição activa para lembrar.');
+
+  const e = evaluate(sub, ctx);
+  const late = e.daysUntilDue < 0;
+  const kind = input.kind === 'auto' ? (late ? 'warning' : 'reminder') : input.kind;
+  if (kind === 'warning' && !late) throw badRequest('A subscrição ainda não venceu: envie um lembrete de vencimento em vez de um aviso de atraso.');
+  if (kind === 'reminder' && late) throw badRequest('A subscrição já venceu: envie um aviso de pagamento em atraso.');
+  const type: NotificationType = kind === 'warning' ? (e.status === 'EXPIRED' ? 'EXPIRED' : 'OVERDUE') : e.daysUntilDue === 0 ? 'DUE_TODAY' : 'DUE_REMINDER';
+
+  const results = await notificationService.notifyMember({ ctx, member, subscription: sub, type, channels: input.channels, triggeredBy: user.id });
+  if (results.length === 0) throw badRequest('Nenhum canal disponível: active o WhatsApp/email nas configurações ou adicione um contacto ao membro.');
+
+  const ids = results.map((r) => r.notificationId).filter(Boolean) as string[];
+  const rows = await prisma.notification.findMany({ where: { id: { in: ids } }, include: { member: { select: memberRefSelect } } });
+  const count = (s: string) => results.filter((r) => r.status === s).length;
+  await audit({
+    gymId: user.gymId,
+    userId: user.id,
+    action: 'notifications.remind',
+    entity: 'Member',
+    entityId: member.id,
+    summary: `${user.name} enviou manualmente "${NOTIFICATION_TYPE_LABELS[type]}" a ${member.code} (${count('SENT')} enviada(s), ${count('FAILED')} falhada(s)).`,
+    ip: req.ip,
+  });
+  res.json({ type, notifications: rows.map(toNotificationDTO), sent: count('SENT'), failed: count('FAILED'), skipped: count('SKIPPED') });
 });
 
 notificationsRouter.post('/run-reminders', requirePermission('notifications:write'), async (req, res) => {

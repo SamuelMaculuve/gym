@@ -16,7 +16,10 @@ import type {
   PaymentListQuery,
   PlanInput,
   ReportQuery,
+  ReminderSendInput,
   ResetPasswordInput,
+  SetupInput,
+  SetupStatus,
   SendNotificationInput,
   SubscriptionActionInput,
   SubscriptionCreateInput,
@@ -49,6 +52,7 @@ import type {
   PlanDTO,
   PublicPaymentLink,
   ReminderRunResult,
+  ReminderSendResult,
   SearchResults,
   SessionResponse,
   SubscriptionDTO,
@@ -73,6 +77,10 @@ export function createGymApi(http: ApiClient) {
         http.request<{ ok: true }>('POST', '/api/auth/forgot-password', { body: input, auth: false }),
       resetPassword: (input: ResetPasswordInput) =>
         http.request<{ ok: true }>('POST', '/api/auth/reset-password', { body: input, auth: false }),
+    },
+    setup: {
+      status: () => http.request<SetupStatus>('GET', '/api/setup/status', { auth: false }),
+      run: (input: SetupInput) => http.request<SessionResponse>('POST', '/api/setup', { body: input, auth: false }),
     },
     dashboard: {
       summary: () => http.get<DashboardSummary>('/api/dashboard'),
@@ -116,6 +124,7 @@ export function createGymApi(http: ApiClient) {
     notifications: {
       list: (query: NotificationListQuery) => http.get<Paginated<NotificationDTO>>('/api/notifications', q(query)),
       send: (input: SendNotificationInput) => http.post<NotificationDTO[]>('/api/notifications/send', input),
+      remind: (input: ReminderSendInput) => http.post<ReminderSendResult>('/api/notifications/remind', input),
       runReminders: (dryRun: boolean) => http.post<ReminderRunResult>('/api/notifications/run-reminders', { dryRun }),
       templates: () => http.get<TemplateDTO[]>('/api/notifications/templates'),
       updateTemplate: (id: string, input: TemplateUpdateInput) => http.put<TemplateDTO>(`/api/notifications/templates/${id}`, input),

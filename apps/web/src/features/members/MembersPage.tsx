@@ -1,4 +1,4 @@
-import { CreditCard, UserPlus, Users } from 'lucide-react';
+import { BellRing, CreditCard, UserPlus, Users } from 'lucide-react';
 import { useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
@@ -27,6 +27,7 @@ export function MembersPage() {
   const quick = useQuickActions();
   const { can } = useAuth();
   const plans = usePlans();
+  const canRemind = can('notifications:write') || can('members:write');
 
   const query = {
     q: params.get('q') ?? '',
@@ -85,20 +86,37 @@ export function MembersPage() {
       key: 'actions',
       header: <span className="sr-only">Acções</span>,
       align: 'right',
-      cell: (m) =>
-        can('payments:write') && (
-          <Button
-            size="sm"
-            variant="ghost"
-            icon={<CreditCard className="h-4 w-4" />}
-            onClick={(e) => {
-              e.stopPropagation();
-              quick.openPayment(m.id);
-            }}
-          >
-            Pagar
-          </Button>
-        ),
+      cell: (m) => (
+        <div className="flex justify-end gap-1">
+          {canRemind && m.subscriptionId && m.status !== 'CANCELLED' && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<BellRing className="h-4 w-4" />}
+              aria-label={`Enviar lembrete a ${m.fullName}`}
+              title="Enviar lembrete"
+              disabled={!m.notificationsEnabled}
+              onClick={(e) => {
+                e.stopPropagation();
+                quick.openReminder(m.id);
+              }}
+            />
+          )}
+          {can('payments:write') && (
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={<CreditCard className="h-4 w-4" />}
+              onClick={(e) => {
+                e.stopPropagation();
+                quick.openPayment(m.id);
+              }}
+            >
+              Pagar
+            </Button>
+          )}
+        </div>
+      ),
     },
   ];
 

@@ -29,3 +29,26 @@ export const changePasswordSchema = z.object({
   newPassword: passwordSchema,
 });
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+/** Configuração inicial (primeira utilização numa base de dados vazia). */
+export const setupSchema = z.object({
+  gymName: z.string().trim().min(2, 'Indique o nome do ginásio').max(100),
+  adminName: z.string().trim().min(2, 'Indique o seu nome').max(100),
+  email: z.email('Email inválido').trim().toLowerCase(),
+  password: passwordSchema,
+  currency: z.string().length(3).default('MZN'),
+  timezone: z.string().default('Africa/Maputo'),
+  createDefaultPlans: z.boolean().default(true),
+  includeDemoData: z.boolean().default(false),
+  /** Cria também as contas de demonstração (gestor, recepção e contabilidade) com palavras-passe conhecidas. */
+  createDemoUsers: z.boolean().default(false),
+  setupToken: z.string().optional(),
+});
+export type SetupInput = z.input<typeof setupSchema>;
+
+export interface SetupStatus {
+  needsSetup: boolean;
+  tokenRequired: boolean;
+  /** Configuração bloqueada até existir SETUP_TOKEN (Netlify). */
+  blocked: boolean;
+}

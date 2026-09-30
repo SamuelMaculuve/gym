@@ -27,7 +27,8 @@ export function onUnauthorized(handler: () => void) {
 }
 
 export const http = createApiClient({
-  baseUrl: import.meta.env.VITE_API_URL ?? 'http://localhost:4000',
+  // Vazio = mesmo domínio (/api), que é o caso na Netlify e no `npm run dev` (proxy do Vite).
+  baseUrl: import.meta.env.VITE_API_URL ?? '',
   storage: tokenStorage,
   onUnauthorized: () => unauthorizedHandler?.(),
 });

@@ -15,7 +15,7 @@ auditRouter.get('/', requirePermission('audit:read'), async (req, res) => {
     gymId,
     ...(q.entity ? { entity: q.entity } : {}),
     ...(q.userId ? { userId: q.userId } : {}),
-    ...(q.q ? { summary: { contains: q.q } } : {}),
+    ...(q.q ? { summary: { contains: q.q, mode: 'insensitive' } } : {}),
   };
   const [total, rows] = await Promise.all([
     prisma.auditLog.count({ where }),

@@ -191,7 +191,7 @@ export async function listAttendance(ctx: GymContext, query: AttendanceListQuery
     gymId: ctx.gym.id,
     ...(query.memberId ? { memberId: query.memberId } : {}),
     ...(query.from || query.to ? { date: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lte: query.to } : {}) } } : {}),
-    ...(query.q ? { member: { OR: [{ fullName: { contains: query.q } }, { code: { contains: query.q.toUpperCase() } }] } } : {}),
+    ...(query.q ? { member: { OR: [{ fullName: { contains: query.q, mode: 'insensitive' } }, { code: { contains: query.q.toUpperCase(), mode: 'insensitive' } }] } } : {}),
   };
   const [total, items] = await Promise.all([
     prisma.attendance.count({ where }),

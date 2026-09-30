@@ -1,9 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router';
 import { loginSchema, type LoginInput } from '@gymflow/shared';
 import { Button, Input } from '../../components/ui';
+import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { errorMessage } from '../../lib/errors';
 import { AuthLayout } from './AuthLayout';
@@ -20,8 +22,11 @@ export function LoginPage() {
   const location = useLocation();
   const [error, setError] = useState<string | null>(null);
   const form = useForm<LoginInput>({ resolver: zodResolver(loginSchema), defaultValues: { email: '', password: '' } });
+  // Base de dados vazia (primeiro deploy): encaminha para o assistente de configuração.
+  const setup = useQuery({ queryKey: ['setup-status'], queryFn: api.setup.status, retry: false, staleTime: 60_000 });
 
   if (user) return <Navigate to="/" replace />;
+  if (setup.data?.needsSetup) return <Navigate to="/setup" replace />;
 
   const submit = form.handleSubmit(async (values) => {
     setError(null);

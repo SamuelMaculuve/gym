@@ -1,18 +1,48 @@
-# Deploy do frontend (apps/web) na Netlify.
-# Defina VITE_API_URL nas variáveis de ambiente do site (ex.: https://api.seuginasio.co.mz).
+# GymFlow na Netlify: frontend (apps/web) + API (Netlify Functions) + Netlify Database (Postgres).
+#
+# Variáveis de ambiente a definir no painel do site:
+#   SETUP_TOKEN   código para o assistente de configuração inicial (/setup) — obrigatório
+#   CRON_SECRET   (opcional) para chamar POST /api/cron/reminders a partir de fora
+#   WHATSAPP_* / SMTP_* / SMS_*   fornecedores de notificações (ver .env.example)
+# NETLIFY_DB_URL e URL são definidas automaticamente pela Netlify.
+
 [build]
-  base = "/"
-  command = "npm ci && npm run build"
+  command = "npm run build:netlify"
   publish = "apps/web/dist"
 
 [build.environment]
   NODE_VERSION = "22"
 
-# SPA: todas as rotas servem index.html
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  # O Prisma carrega o compilador de queries (WASM) do disco: tem de ir junto com a função.
+  external_node_modules = ["@prisma/client", ".prisma", "@prisma/adapter-pg", "pg"]
+  included_files = [
+    "node_modules/.prisma/client/**",
+    "!node_modules/.prisma/client/libquery_engine-*",
+    "!node_modules/.prisma/client/query_engine_bg.*",
+  ]
+
+# API no mesmo domínio
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA: todas as outras rotas servem index.html
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[dev]
+  command = "npm run dev -w @gymflow/web"
+  targetPort = 5173
+  port = 8888
+  framework = "#custom"
+  autoLaunch = false
 
 [[headers]]
   for = "/*"

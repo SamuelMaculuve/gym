@@ -1,4 +1,4 @@
-import { ArrowLeft, Bell, BellOff, CreditCard, MessageSquare, MoreVertical, Pause, Pencil, Play, QrCode, Repeat, UserCheck, UserX, XCircle } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, BellRing, CreditCard, MessageSquare, MoreVertical, Pause, Pencil, Play, QrCode, Repeat, UserCheck, UserX, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import { toast } from 'sonner';
@@ -121,6 +121,11 @@ function MemberHeader({ member }: { member: MemberDetail }) {
           {can('payments:write') && (
             <Button icon={<CreditCard className="h-4 w-4" />} onClick={() => quick.openPayment(member.id)}>
               Registar pagamento
+            </Button>
+          )}
+          {(can('notifications:write') || can('members:write')) && sub && sub.state !== 'CANCELLED' && (
+            <Button variant="outline" icon={<BellRing className="h-4 w-4" />} onClick={() => quick.openReminder(member.id)} disabled={!member.notificationsEnabled} title={member.notificationsEnabled ? undefined : 'Notificações desactivadas para este membro'}>
+              Enviar lembrete
             </Button>
           )}
           <Button variant="outline" icon={<QrCode className="h-4 w-4" />} onClick={() => setQrOpen(true)}>

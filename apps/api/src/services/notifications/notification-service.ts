@@ -2,6 +2,7 @@ import { Prisma, type Member, type Plan, type Subscription } from '@prisma/clien
 import {
   NOTIFICATION_CHANNELS,
   defaultTemplate,
+  normalizePhone,
   formatDate,
   formatMoney,
   renderTemplate,
@@ -9,13 +10,14 @@ import {
   type NotificationType,
   type TemplateVariables,
 } from '@gymflow/shared';
+import { env } from '../../config/env';
 import type { GymContext } from '../../lib/gym';
 import { evaluate } from '../../lib/mappers';
 import { prisma } from '../../lib/prisma';
 import { getOrCreatePaymentLink } from '../payments/payment-links';
 import { renderEmailHtml } from './email-layout';
 import { createProviders } from './providers';
-import type { NotificationProvider, OutgoingMessage } from './types';
+import { UnsupportedMessageError, type MessageContext, type NotificationProvider, type OutgoingMessage } from './types';
 
 export interface DeliverInput {
   gymId: string;
@@ -27,8 +29,24 @@ export interface DeliverInput {
   subject?: string | null;
   message: string;
   html?: string;
+  context?: MessageContext;
   dedupeKey?: string | null;
   triggeredBy?: string;
+}
+
+/** Destinatários autorizados (NOTIFICATIONS_ALLOWLIST); null = todos. */
+const allowlist: Set<string> | null = env.NOTIFICATIONS_ALLOWLIST
+  ? new Set(
+      env.NOTIFICATIONS_ALLOWLIST.split(',')
+        .map((v) => v.trim().toLowerCase())
+        .filter(Boolean)
+        .map((v) => (v.includes('@') ? v : normalizePhone(v))),
+    )
+  : null;
+
+function isAllowed(channel: NotificationChannel, recipient: string) {
+  if (!allowlist) return true;
+  return allowlist.has(channel === 'EMAIL' ? recipient.toLowerCase() : normalizePhone(recipient));
 }
 
 export interface NotifyMemberInput {
@@ -52,6 +70,7 @@ export interface NotifyResult {
   channel: NotificationChannel;
   status: 'SENT' | 'FAILED' | 'SKIPPED' | 'DUPLICATE' | 'WOULD_SEND';
   notificationId?: string;
+  error?: string;
 }
 
 /**
@@ -82,14 +101,8 @@ export class NotificationService {
   }
 
   private sendVia(channel: NotificationChannel, message: OutgoingMessage) {
-    switch (channel) {
-      case 'WHATSAPP':
-        return this.sendWhatsApp(message.to, message.text);
-      case 'EMAIL':
-        return this.sendEmail(message.to, message.subject ?? '', message.text, message.html);
-      case 'SMS':
-        return this.sendSMS(message.to, message.text);
-    }
+    // Passa a mensagem completa (inclui o contexto estruturado para fornecedores com templates).
+    return this.providers[channel].send(message);
   }
 
   /**
@@ -122,12 +135,21 @@ export class NotificationService {
       throw err;
     }
 
+    const skip = async (reason: string): Promise<NotifyResult> => {
+      await prisma.notification.update({ where: { id: notification.id }, data: { status: 'SKIPPED', error: reason } });
+      return { channel: input.channel, status: 'SKIPPED', notificationId: notification.id, error: reason };
+    };
+    if (!isAllowed(input.channel, input.recipient)) {
+      return skip('Destinatário fora da lista de teste (NOTIFICATIONS_ALLOWLIST).');
+    }
+
     try {
       const result = await this.sendVia(input.channel, {
         to: input.recipient,
         subject: input.subject,
         text: input.message,
         html: input.html,
+        context: input.context,
       });
       await prisma.notification.update({
         where: { id: notification.id },
@@ -135,11 +157,10 @@ export class NotificationService {
       });
       return { channel: input.channel, status: 'SENT', notificationId: notification.id };
     } catch (err) {
-      await prisma.notification.update({
-        where: { id: notification.id },
-        data: { status: 'FAILED', error: err instanceof Error ? err.message.slice(0, 500) : 'Erro desconhecido' },
-      });
-      return { channel: input.channel, status: 'FAILED', notificationId: notification.id };
+      if (err instanceof UnsupportedMessageError) return skip(err.message);
+      const error = err instanceof Error ? err.message.slice(0, 500) : 'Erro desconhecido';
+      await prisma.notification.update({ where: { id: notification.id }, data: { status: 'FAILED', error } });
+      return { channel: input.channel, status: 'FAILED', notificationId: notification.id, error };
     }
   }
 
@@ -226,6 +247,16 @@ export class NotificationService {
                   ctaUrl: typeof vars.payment_link === 'string' ? vars.payment_link : null,
                 })
               : undefined,
+          context: {
+            type: input.type,
+            memberName: member.fullName,
+            memberCode: member.code,
+            gymName: ctx.gym.name,
+            planName: String(vars.plan ?? ''),
+            dueDate: String(vars.due_date ?? ''),
+            amount: String(vars.amount ?? ''),
+            paymentLink: String(vars.payment_link ?? ''),
+          },
           dedupeKey: input.dedupeKey?.(channel) ?? null,
           triggeredBy: input.triggeredBy,
         }),

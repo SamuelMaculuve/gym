@@ -1,8 +1,9 @@
-node_modules
-dist
-.env
-.env.local
 *.db
 *.db-journal
-.netlify
 .DS_Store
+.env
+.env.local
+.netlify
+.tmp-fn-test
+dist
+node_modules

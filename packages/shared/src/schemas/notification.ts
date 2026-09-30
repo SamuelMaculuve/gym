@@ -26,3 +26,13 @@ export const notificationListQuery = paginationQuery.extend({
   q: z.string().trim().optional(),
 });
 export type NotificationListQuery = z.input<typeof notificationListQuery>;
+
+/** Envio manual e individual de um lembrete (botão "Enviar lembrete"). */
+export const REMINDER_KINDS = ['auto', 'reminder', 'warning'] as const;
+export const reminderSendSchema = z.object({
+  memberId: z.string().min(1),
+  /** auto: lembrete se ainda não venceu, aviso de atraso se já venceu. */
+  kind: z.enum(REMINDER_KINDS).default('auto'),
+  channels: z.array(z.enum(NOTIFICATION_CHANNELS)).optional(),
+});
+export type ReminderSendInput = z.input<typeof reminderSendSchema>;

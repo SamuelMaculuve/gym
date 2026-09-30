@@ -9,23 +9,33 @@ Aplicação web para gerir **membros, planos, subscrições, pagamentos, lembret
 | Camada | Tecnologia |
 |---|---|
 | Frontend (`apps/web`) | React 19, TypeScript, Vite, Tailwind CSS 4, React Router 7, TanStack Query, React Hook Form + Zod, Recharts, Lucide |
-| API (`apps/api`) | Node.js, Express 5, Prisma, Zod, bcrypt, node-cron, Nodemailer |
+| API (`apps/api`) | Node.js, Express 5, Prisma (driver `pg`), Zod, bcrypt, Nodemailer — corre como Netlify Function |
 | Partilhado (`packages/shared`) | Tipos, schemas Zod, regras de negócio puras e cliente HTTP (reutilizável no Expo) |
-| Base de dados | SQLite (desenvolvimento) · PostgreSQL (produção) |
+| Base de dados | **Netlify Database** (Postgres gerido) · qualquer PostgreSQL fora da Netlify |
 
 ## Início rápido
 
-Requisitos: Node.js 20 ou superior.
+Requisitos: Node.js 20 ou superior e PostgreSQL. Em alternativa ao PostgreSQL, pode usar o Netlify CLI, que traz uma base de dados local.
+
+### Opção A — Netlify CLI (igual à produção)
 
 ```bash
 npm install
-cp .env.example apps/api/.env        # ajuste os valores se necessário
-cp apps/web/.env.example apps/web/.env
-npm run db:setup                     # cria a base de dados e carrega os dados de demonstração
-npm run dev                          # API em :4000 e web em :5173
+npm install -g netlify-cli
+netlify dev                                   # site + API (função) + Postgres local em http://localhost:8888
+netlify database migrations apply             # noutro terminal: cria as tabelas na base local
+netlify database connect --json               # mostra a ligação da base local
+DATABASE_URL="<ligação acima>" npm run db:seed -w @gymflow/api   # dados de demonstração
 ```
 
-Abra http://localhost:5173.
+### Opção B — Qualquer PostgreSQL
+
+```bash
+npm install
+cp .env.example apps/api/.env                 # ajuste DATABASE_URL
+npm run db:setup                              # cria o schema e carrega os dados de demonstração
+npm run dev                                   # API em :4000 e web em :5173 (o Vite encaminha /api)
+```
 
 ### Contas de demonstração
 
@@ -42,11 +52,13 @@ O seed cria 20 membros, 4 planos activos (e 1 inactivo), cerca de 90 pagamentos 
 
 | Comando | Descrição |
 |---|---|
-| `npm run dev` | API e web em modo de desenvolvimento |
-| `npm run build` | Build de produção do frontend (`apps/web/dist`) |
-| `npm run build:api` | Bundle de produção da API (`apps/api/dist/server.js`) |
-| `npm run db:setup` | Cria o schema e carrega os dados de demonstração |
+| `npm run dev` | API (Express) e web em modo de desenvolvimento |
+| `npm run dev:netlify` | Igual à produção: `netlify dev` (site, funções e base local) |
+| `npm run build:netlify` | Build usado pela Netlify (gera o cliente Prisma e o frontend) |
+| `npm run build:api` | Bundle da API como servidor Node (para alojar fora da Netlify) |
+| `npm run db:setup` | Cria o schema (`prisma db push`) e carrega os dados de demonstração |
 | `npm run db:reset` | Apaga todos os dados e volta a semear |
+| `npm run db:migration:new -w @gymflow/api -- <nome>` | Gera uma nova migração SQL para a Netlify a partir do `schema.prisma` |
 | `npm run typecheck` | Verificação de tipos em todos os pacotes |
 | `npm test -w @gymflow/shared` | Testes das regras de negócio (estados, lembretes) |
 | `npm run reminders:run -w @gymflow/api -- --force` | Executa o motor de lembretes uma vez |
@@ -79,31 +91,68 @@ Estão em `packages/shared/src/domain` e têm testes:
 4. Os lembretes são deduplicados pela chave `subscrição:tipo:limiar:canal`, que é única na base de dados.
 5. As datas de calendário são sempre calculadas no fuso horário configurado pelo ginásio.
 
-## Deployment
+## Deployment na Netlify (site, API e base de dados)
 
-### Frontend na Netlify
+Tudo corre na Netlify:
 
-O ficheiro `netlify.toml` já define:
+| Parte | Onde |
+|---|---|
+| Frontend | `apps/web/dist` (CDN) |
+| API | Netlify Function `netlify/functions/api.mts`, servida em `/api/*` no mesmo domínio (sem CORS) |
+| Lembretes | Scheduled Function `netlify/functions/reminders.mts` (`@hourly`) |
+| Base de dados | Netlify Database. As migrações em `netlify/database/migrations/` são aplicadas automaticamente em cada deploy, e cada deploy preview tem a sua própria cópia da base |
 
-- comando de build: `npm ci && npm run build`
-- directório publicado: `apps/web/dist`
-- redireccionamento SPA (`/*` para `/index.html`) e cabeçalhos de segurança
+Passos:
 
-Nas variáveis de ambiente do site, defina `VITE_API_URL` com o URL público da API, por exemplo `https://api.seuginasio.co.mz`.
+1. Crie o site na Netlify a partir do repositório (ou `netlify init`). O `netlify.toml` já define o build, as funções e os redirects.
+2. Em **Site configuration → Environment variables** defina:
+   - `SETUP_TOKEN`: um código longo e aleatório, pedido no assistente de configuração
+   - `CRON_SECRET` (opcional)
+   - os fornecedores de notificações (`WHATSAPP_*`, `SMTP_*`, `EMAIL_PROVIDER`…)
 
-### API (Render, Railway, Fly.io, VPS…)
+   Não defina `DATABASE_URL`: a Netlify fornece `NETLIFY_DB_URL` automaticamente.
+3. Faça o deploy. A Netlify cria a base de dados e aplica as migrações antes de publicar.
+4. Abra o site: com a base de dados vazia, aparece o assistente **/setup**. Indique o `SETUP_TOKEN`, o nome do ginásio e os dados do administrador. Pode activar "Incluir dados de demonstração" para ver o sistema preenchido.
 
-1. Use PostgreSQL: em `apps/api/prisma/schema.prisma` altere `provider = "sqlite"` para `"postgresql"` e defina `DATABASE_URL`.
-2. Build: `npm ci && npm run build:api`. Arranque: `npm start -w @gymflow/api`.
-3. Crie o schema com `npx prisma migrate deploy` (ou `prisma db push` na primeira instalação).
-4. Variáveis obrigatórias:
-   - `CORS_ORIGIN`: o domínio da Netlify
-   - `PUBLIC_APP_URL`: o mesmo domínio, usado nos links de pagamento e de recuperação de conta
-   - `CRON_SECRET`: 24 ou mais caracteres
-   - `TRUST_PROXY=true`, se a API estiver atrás de um proxy
-5. **Lembretes**: com `REMINDERS_CRON_ENABLED=true` correm dentro do processo, a cada hora. Em plataformas sem processo persistente, chame `POST /api/cron/reminders` com o cabeçalho `x-cron-secret`.
+### Alterar o modelo de dados
 
-### WhatsApp em produção
+1. Edite `apps/api/prisma/schema.prisma`.
+2. Com a base local actualizada (`netlify dev`), corra `DATABASE_URL=<local> npm run db:migration:new -w @gymflow/api -- <nome>`.
+3. Reveja o SQL gerado em `netlify/database/migrations/<timestamp>_<nome>/migration.sql` e faça commit. A Netlify aplica-o no próximo deploy. Prefira alterações compatíveis com a versão anterior ("expand and contract").
+
+### Alojar a API fora da Netlify (opcional)
+
+O servidor Express continua disponível: `npm run build:api` e depois `npm start -w @gymflow/api`, com `DATABASE_URL` (qualquer PostgreSQL), `CORS_ORIGIN`, `PUBLIC_APP_URL` e `REMINDERS_CRON_ENABLED=true`. No frontend, defina `VITE_API_URL` com o URL dessa API.
+
+### WhatsApp via webhook (integração actual)
+
+O envio de WhatsApp está integrado com um webhook de automação (Basic Auth). Configure na Netlify (ou em `apps/api/.env`):
+
+```
+WHATSAPP_PROVIDER=webhook
+WHATSAPP_WEBHOOK_URL=https://workflow.mazedeve.com/webhook/gym
+WHATSAPP_WEBHOOK_USERNAME=…
+WHATSAPP_WEBHOOK_PASSWORD=…
+```
+
+O webhook recebe dados estruturados e usa os seus próprios templates:
+
+| Situação no GymFlow | `notification_type` |
+|---|---|
+| Lembrete antes do vencimento / vence hoje | `gym_reminder` |
+| Pagamento em atraso / subscrição expirada | `gym_warning` |
+
+```json
+{ "notification_type": "gym_reminder", "name": "Nome do membro", "phone": "+2588…", "gym_name": "…", "expire_date": "15/10/2026" }
+```
+
+Os outros tipos de mensagem (boas-vindas, confirmação de pagamento, mensagens personalizadas) não têm template no webhook. Ficam registados no histórico como "Ignorada" no canal WhatsApp e continuam a ser enviados por email, se estiver activo.
+
+**Envio manual individual:** o botão **Enviar lembrete** (sino) aparece na lista de membros, na lista de subscrições e no perfil do membro. Envia de imediato um lembrete de vencimento, antes de a subscrição vencer, ou um aviso de atraso, depois de vencer.
+
+**Números de teste:** com `NOTIFICATIONS_ALLOWLIST=258844552968` só esse número recebe mensagens reais; todos os outros ficam "Ignorados" sem chamar o webhook. Use sempre em desenvolvimento e deixe vazio em produção. Os dados de demonstração criados pelo `/setup` têm as notificações desactivadas, para não contactar números fictícios.
+
+### WhatsApp Cloud API (Meta, alternativa)
 
 Configure `WHATSAPP_PROVIDER=meta`, `WHATSAPP_ACCESS_TOKEN` e `WHATSAPP_PHONE_NUMBER_ID`. A Meta só permite mensagens de texto livre dentro da janela de 24 horas de conversa. Para lembretes enviados por iniciativa do ginásio é preciso ter **templates aprovados** no WhatsApp Manager. Para os usar, adapte `MetaWhatsAppProvider` (em `apps/api/src/services/notifications/providers`) para enviar `type: "template"`. Para trocar de fornecedor (360dialog, Twilio…) basta implementar a interface `NotificationProvider`.
 
@@ -113,7 +162,8 @@ Em desenvolvimento, os três canais usam o fornecedor `console`, que mostra as m
 
 - Palavras-passe guardadas com bcrypt. As sessões usam tokens opacos de 256 bits, dos quais só o hash SHA-256 fica na base de dados, com expiração e revogação.
 - Permissões por perfil definidas num único ficheiro (`packages/shared/src/constants/roles.ts`) e aplicadas em cada rota da API.
-- Helmet, CORS restrito, limite de pedidos global (300 por minuto) e no login (10 tentativas falhadas em 15 minutos).
+- Helmet, limite de pedidos global (300 por minuto) e no login e no /setup (10 tentativas falhadas em 15 minutos). Em serverless o contador é por instância da função.
+- Assistente /setup só funciona com a base vazia e, na Netlify, apenas com o `SETUP_TOKEN` correcto.
 - Validação Zod no frontend e na API, com os mesmos schemas.
 - Credenciais só em variáveis de ambiente da API. O browser recebe apenas `VITE_API_URL`.
 - Os QR Codes contêm apenas um identificador aleatório, que pode ser regenerado.

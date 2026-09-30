@@ -4,6 +4,7 @@ import type { Permission } from '@gymflow/shared';
 import { LoadingState } from '../components/ui';
 import { LoginPage } from '../features/auth/LoginPage';
 import { ForgotPasswordPage, ResetPasswordPage } from '../features/auth/PasswordRecovery';
+import { SetupPage } from '../features/auth/SetupPage';
 import { AppLayout } from './AppLayout';
 import { NotFoundPage, RequireAuth, RequirePermission } from './guards';
 
@@ -37,6 +38,7 @@ function guarded(permission: Permission, element: ReactNode) {
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/setup', element: <SetupPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/reset-password', element: <ResetPasswordPage /> },
   {

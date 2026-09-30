@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationListQuery, SendNotificationInput, TemplateUpdateInput } from '@gymflow/shared';
+import type { NotificationListQuery, ReminderSendInput, SendNotificationInput, TemplateUpdateInput } from '@gymflow/shared';
 import { api } from '../../lib/api';
 import { qk } from '../../lib/query-keys';
 
@@ -33,6 +33,14 @@ export function useSendNotification() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: SendNotificationInput) => api.notifications.send(input),
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: qk.notifications }), qc.invalidateQueries({ queryKey: qk.members })]),
+  });
+}
+
+export function useSendReminder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: ReminderSendInput) => api.notifications.remind(input),
     onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: qk.notifications }), qc.invalidateQueries({ queryKey: qk.members })]),
   });
 }

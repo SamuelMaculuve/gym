@@ -1,16 +1,18 @@
-// GymFlow — modelo relacional.
-// Desenvolvimento: SQLite. Produção: altere provider para "postgresql" e DATABASE_URL.
-// Enumerações são guardadas como texto e validadas pelos schemas Zod em @gymflow/shared,
-// para manter o mesmo schema compatível com SQLite e PostgreSQL.
+// GymFlow — modelo relacional (PostgreSQL).
+// Produção: Netlify Database (Postgres gerido). Desenvolvimento: `netlify dev` ou qualquer Postgres.
+// As migrações SQL vivem em /netlify/database/migrations e são aplicadas pela Netlify em cada deploy.
+// Enumerações são guardadas como texto e validadas pelos schemas Zod em @gymflow/shared.
 // Datas de calendário (YYYY-MM-DD, fuso do ginásio) são String; instantes são DateTime (UTC).
 // Valores monetários em cêntimos (Int).
 
 generator client {
-  provider = "prisma-client-js"
+  provider   = "prisma-client-js"
+  // Sem motor binário: usa o driver `pg` (via @prisma/adapter-pg), ideal para funções serverless.
+  engineType = "client"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 

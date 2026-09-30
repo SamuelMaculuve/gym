@@ -5,12 +5,19 @@ import { ConsoleProvider } from './console';
 import { SmtpEmailProvider } from './email-smtp';
 import { HttpSmsProvider } from './sms-http';
 import { MetaWhatsAppProvider } from './whatsapp-meta';
+import { WebhookWhatsAppProvider } from './whatsapp-webhook';
 
 /** Selecciona o fornecedor de cada canal a partir das variáveis de ambiente. */
 export function createProviders(): Record<NotificationChannel, NotificationProvider> {
   return {
     WHATSAPP:
-      env.WHATSAPP_PROVIDER === 'meta'
+      env.WHATSAPP_PROVIDER === 'webhook'
+        ? new WebhookWhatsAppProvider({
+            url: env.WHATSAPP_WEBHOOK_URL,
+            username: env.WHATSAPP_WEBHOOK_USERNAME,
+            password: env.WHATSAPP_WEBHOOK_PASSWORD,
+          })
+        : env.WHATSAPP_PROVIDER === 'meta'
         ? new MetaWhatsAppProvider({
             apiUrl: env.WHATSAPP_API_URL,
             accessToken: env.WHATSAPP_ACCESS_TOKEN,

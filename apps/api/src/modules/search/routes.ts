@@ -36,7 +36,7 @@ searchRouter.get('/', requirePermission('members:read', 'payments:read'), async 
     const payments = await prisma.payment.findMany({
       where: {
         gymId: user.gymId,
-        OR: [{ reference: { contains: term } }, { receiptNumber: { contains: term.toUpperCase() } }],
+        OR: [{ reference: { contains: term, mode: 'insensitive' } }, { receiptNumber: { contains: term.toUpperCase(), mode: 'insensitive' } }],
       },
       include: { member: { select: memberRefSelect } },
       orderBy: { paymentDate: 'desc' },

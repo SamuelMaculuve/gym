@@ -17,13 +17,22 @@ import { publicRouter } from './modules/public/routes';
 import { reportsRouter } from './modules/reports/routes';
 import { searchRouter } from './modules/search/routes';
 import { settingsRouter } from './modules/settings/routes';
+import { setupRouter } from './modules/setup/routes';
 import { subscriptionsRouter } from './modules/subscriptions/routes';
 import { usersRouter } from './modules/users/routes';
 
 export function createApp() {
   const app = express();
-  if (env.TRUST_PROXY) app.set('trust proxy', 1);
+  // Atrás do CDN da Netlify (ou de outro proxy) o IP real vem em X-Forwarded-For.
+  if (env.TRUST_PROXY || env.NETLIFY) app.set('trust proxy', true);
   app.disable('x-powered-by');
+
+  // Na função da Netlify o pedido pode chegar como /.netlify/functions/api/...; normaliza para /api/...
+  app.use((req, _res, next) => {
+    const prefix = '/.netlify/functions/api';
+    if (req.url.startsWith(prefix)) req.url = '/api' + req.url.slice(prefix.length);
+    next();
+  });
 
   app.use(helmet());
   const origins = env.CORS_ORIGIN.split(',').map((o) => o.trim());
@@ -35,6 +44,7 @@ export function createApp() {
 
   // Rotas públicas
   app.use('/api/auth', authRouter);
+  app.use('/api/setup', setupRouter);
   app.use('/api', publicRouter);
 
   // Rotas autenticadas

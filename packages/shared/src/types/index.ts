@@ -293,6 +293,14 @@ export interface TemplateDTO {
   updatedAt: ISODateTime;
 }
 
+export interface ReminderSendResult {
+  type: NotificationType;
+  notifications: NotificationDTO[];
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
 export interface ReminderRunResult {
   processed: number;
   sent: number;

@@ -1,11 +1,13 @@
-import { Repeat } from 'lucide-react';
+import { BellRing, Repeat } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import { formatDate, SUBSCRIPTION_STATUS_LABELS, SUBSCRIPTION_STATUSES, type SubscriptionDTO, type SubscriptionStatus } from '@gymflow/shared';
+import { useQuickActions } from '../../app/QuickActions';
 import { ExportMenu } from '../../components/ExportMenu';
 import { PageHeader } from '../../components/PageHeader';
-import { Badge, Card, DataTable, EmptyState, Pagination, SearchInput, Select, SubscriptionBadge, Tabs, type Column } from '../../components/ui';
+import { Badge, Button, Card, DataTable, EmptyState, Pagination, SearchInput, Select, SubscriptionBadge, Tabs, type Column } from '../../components/ui';
 import { api } from '../../lib/api';
+import { useAuth } from '../../lib/auth';
 import { useFormat } from '../../lib/format';
 import { usePlans } from '../plans/hooks';
 import { useSubscriptions } from './hooks';
@@ -15,6 +17,9 @@ export function SubscriptionsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const plans = usePlans();
+  const quick = useQuickActions();
+  const { can } = useAuth();
+  const canRemind = can('notifications:write') || can('members:write');
   const [q, setQ] = useState('');
   const [page, setPage] = useState(1);
   const status = (params.get('status') as SubscriptionStatus | null) ?? undefined;
@@ -59,6 +64,26 @@ export function SubscriptionsPage() {
       ),
     },
     { key: 'last', header: 'Último pag.', hideBelow: 'lg', cell: (s) => <span className="tabular">{formatDate(s.lastPaymentDate)}</span> },
+    {
+      key: 'x',
+      header: <span className="sr-only">Acções</span>,
+      align: 'right',
+      cell: (s) =>
+        canRemind &&
+        s.status !== 'CANCELLED' && (
+          <Button
+            size="sm"
+            variant="ghost"
+            icon={<BellRing className="h-4 w-4" />}
+            onClick={(e) => {
+              e.stopPropagation();
+              quick.openReminder(s.memberId);
+            }}
+          >
+            Lembrar
+          </Button>
+        ),
+    },
   ];
 
   return (

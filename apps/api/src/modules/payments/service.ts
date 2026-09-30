@@ -189,11 +189,11 @@ export async function listPayments(ctx: GymContext, query: PaymentListQuery & { 
     ...(query.q
       ? {
           OR: [
-            { reference: { contains: query.q } },
-            { receiptNumber: { contains: query.q.toUpperCase() } },
-            { member: { fullName: { contains: query.q } } },
-            { member: { code: { contains: query.q.toUpperCase() } } },
-            { member: { phone: { contains: query.q.replace(/\D/g, '') || query.q } } },
+            { reference: { contains: query.q, mode: 'insensitive' } },
+            { receiptNumber: { contains: query.q.toUpperCase(), mode: 'insensitive' } },
+            { member: { fullName: { contains: query.q, mode: 'insensitive' } } },
+            { member: { code: { contains: query.q.toUpperCase(), mode: 'insensitive' } } },
+            { member: { phone: { contains: query.q.replace(/\D/g, '') || query.q, mode: 'insensitive' } } },
           ],
         }
       : {}),

@@ -12,15 +12,15 @@ Documento de referência da arquitectura, do modelo de dados e dos fluxos princi
            │   packages/shared (tipos, Zod, regras, cliente HTTP)
            ▼                             ▼
 ┌─────────────────────────────────────────────────────┐
-│ apps/api — Express + Prisma                          │
+│ apps/api — Express + Prisma (Netlify Function /api)  │
 │  auth · members · plans · subscriptions · payments   │
 │  attendance · notifications · reports · audit        │
 │  NotificationService (WhatsApp / Email / SMS)        │
 │  ReminderEngine (cron) · PaymentGateway (futuro)     │
 └──────────────────────────┬──────────────────────────┘
                            ▼
-              Base de dados relacional
-      (SQLite em desenvolvimento, PostgreSQL em produção)
+                Netlify Database (Postgres)
+   (local com `netlify dev`; qualquer PostgreSQL fora da Netlify)
 ```
 
 Princípios:
@@ -40,7 +40,9 @@ Princípios:
 ```
 gym/
 ├── package.json                 # npm workspaces
-├── netlify.toml                 # build, publish, SPA redirects
+├── netlify.toml                 # build, funções, redirects /api e SPA
+├── netlify/functions/           # api.mts (Express) e reminders.mts (agendada, @hourly)
+├── netlify/database/migrations/ # migrações SQL aplicadas pela Netlify em cada deploy
 ├── .env.example
 ├── docs/ARCHITECTURE.md
 ├── packages/shared/src/
@@ -59,7 +61,9 @@ gym/
 │       ├── modules/<módulo>/    # routes.ts + service.ts por módulo
 │       ├── services/notifications/  # NotificationService + providers
 │       ├── services/payments/   # PaymentGateway (preparado para M-Pesa/e-Mola)
-│       └── jobs/reminders.ts    # motor de lembretes (cron)
+│       ├── modules/setup/       # assistente de configuração inicial (/setup)
+│       ├── demo/                # dados de demonstração (seed e /setup)
+│       └── jobs/reminders.ts    # motor de lembretes
 └── apps/web/src/
     ├── app/                     # router, providers, layout (sidebar/bottom nav)
     ├── components/ui/           # Button, Input, Select, Modal, Drawer, DataTable, Badge...
@@ -124,7 +128,7 @@ Novo membro → escolher plano (vencimento calculado) → [opcional] registar pa
 QR / código / telefone / nome → localizar membro → calcular estado → permitir ou bloquear
 ("Subscrição expirada. Renovação necessária.") → registar presença.
 
-**Motor de lembretes** (`apps/api/src/jobs/reminders.ts`, a cada hora + endpoint manual)
+**Motor de lembretes** (`apps/api/src/jobs/reminders.ts`: função agendada da Netlify a cada hora, e também execução manual)
 Para cada subscrição actual, com notificações activas, calcula o limiar aplicável
 (7/3/1 dias antes, no dia, 1/7/14 dias depois e depois semanalmente — tudo configurável),
 gera a mensagem a partir do template e envia por cada canal activo. A chave

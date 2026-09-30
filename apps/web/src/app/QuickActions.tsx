@@ -3,6 +3,7 @@ import type { MemberCreateResponse } from '@gymflow/shared';
 import { CheckInPanel } from '../features/attendance/CheckInPanel';
 import { MemberCreatedDialog } from '../features/members/MemberCreatedDialog';
 import { MemberCreateDrawer } from '../features/members/MemberForm';
+import { SendReminderDialog } from '../features/notifications/SendReminderDialog';
 import { PaymentDialog } from '../features/payments/PaymentDialog';
 import { Modal } from '../components/ui';
 
@@ -10,6 +11,7 @@ interface QuickActions {
   openPayment: (memberId?: string | null) => void;
   openCheckIn: () => void;
   openNewMember: () => void;
+  openReminder: (memberId: string) => void;
 }
 
 const Ctx = createContext<QuickActions | null>(null);
@@ -20,19 +22,21 @@ export function QuickActionsProvider({ children }: { children: ReactNode }) {
   const [checkIn, setCheckIn] = useState(false);
   const [newMember, setNewMember] = useState(false);
   const [created, setCreated] = useState<MemberCreateResponse | null>(null);
+  const [reminderFor, setReminderFor] = useState<string | null>(null);
 
   const openPayment = useCallback((memberId?: string | null) => {
     setCheckIn(false);
     setPayment({ open: true, memberId: memberId ?? null });
   }, []);
   const value = useMemo<QuickActions>(
-    () => ({ openPayment, openCheckIn: () => setCheckIn(true), openNewMember: () => setNewMember(true) }),
+    () => ({ openPayment, openCheckIn: () => setCheckIn(true), openNewMember: () => setNewMember(true), openReminder: setReminderFor }),
     [openPayment],
   );
 
   return (
     <Ctx.Provider value={value}>
       {children}
+      <SendReminderDialog memberId={reminderFor} onClose={() => setReminderFor(null)} />
       <PaymentDialog open={payment.open} memberId={payment.memberId} onClose={() => setPayment({ open: false, memberId: null })} />
       <Modal open={checkIn} onClose={() => setCheckIn(false)} title="Check-in rápido" description="QR Code, código de membro, telefone ou nome." size="lg">
         <div className="pb-2">
