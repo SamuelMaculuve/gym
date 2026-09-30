@@ -1,0 +1,23 @@
+{
+  "name": "gymflow",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Gestão de membros, subscrições, pagamentos e presenças para ginásios",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @gymflow/api & npm run dev -w @gymflow/web",
+    "dev:api": "npm run dev -w @gymflow/api",
+    "dev:web": "npm run dev -w @gymflow/web",
+    "build": "npm run build -w @gymflow/web",
+    "build:api": "npm run build -w @gymflow/api",
+    "db:setup": "npm run db:push -w @gymflow/api && npm run db:seed -w @gymflow/api",
+    "db:reset": "npm run db:reset -w @gymflow/api",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
