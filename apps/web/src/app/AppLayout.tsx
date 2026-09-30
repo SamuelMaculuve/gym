@@ -32,8 +32,8 @@ function useDismiss(open: boolean, close: () => void) {
   return ref;
 }
 
-const roundBtn =
-  'flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-700 transition-colors hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800';
+const roundBase = 'flex h-11 w-11 items-center justify-center rounded-full transition-colors';
+const roundBtn = cn(roundBase, 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800');
 const popover = 'animate-fade-in absolute right-0 z-40 mt-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900';
 const popItem = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800';
 
@@ -219,7 +219,7 @@ function QuickMenu() {
   if (actions.length === 0) return null;
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className={cn(roundBtn, 'bg-brand-300 text-slate-950 hover:bg-brand-200 dark:bg-brand-300 dark:text-slate-950 dark:hover:bg-brand-200')} aria-label="Acções rápidas" title="Acções rápidas">
+      <button onClick={() => setOpen((o) => !o)} className={cn(roundBase, 'bg-brand-300 text-slate-950 hover:bg-brand-200')} aria-label="Acções rápidas" title="Acções rápidas">
         <Plus className="h-5 w-5" />
       </button>
       {open && (
