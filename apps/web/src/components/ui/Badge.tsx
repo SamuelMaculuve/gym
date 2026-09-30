@@ -12,13 +12,13 @@ import { cn } from '../../lib/cn';
 export type Tone = 'gray' | 'green' | 'amber' | 'orange' | 'red' | 'blue' | 'violet';
 
 const tones: Record<Tone, string> = {
-  gray: 'bg-slate-100 text-slate-700 ring-slate-500/15 dark:bg-slate-800 dark:text-slate-300',
-  green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300',
-  amber: 'bg-amber-50 text-amber-800 ring-amber-600/20 dark:bg-amber-500/10 dark:text-amber-300',
-  orange: 'bg-orange-50 text-orange-700 ring-orange-600/20 dark:bg-orange-500/10 dark:text-orange-300',
-  red: 'bg-red-50 text-red-700 ring-red-600/20 dark:bg-red-500/10 dark:text-red-300',
-  blue: 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:bg-blue-500/10 dark:text-blue-300',
-  violet: 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:bg-violet-500/10 dark:text-violet-300',
+  gray: 'bg-slate-100 text-slate-700 ring-slate-500/15 dark:text-slate-300 dark:ring-slate-600',
+  green: 'bg-emerald-50 text-emerald-700 ring-emerald-600/20 dark:text-emerald-300 dark:ring-emerald-400/60',
+  amber: 'bg-amber-50 text-amber-800 ring-amber-600/20 dark:text-amber-300 dark:ring-amber-400/60',
+  orange: 'bg-orange-50 text-orange-700 ring-orange-600/20 dark:text-orange-300 dark:ring-orange-400/60',
+  red: 'bg-red-50 text-red-700 ring-red-600/20 dark:text-red-300 dark:ring-red-400/60',
+  blue: 'bg-blue-50 text-blue-700 ring-blue-600/20 dark:text-blue-300 dark:ring-blue-400/60',
+  violet: 'bg-violet-50 text-violet-700 ring-violet-600/20 dark:text-violet-300 dark:ring-violet-400/60',
 };
 
 const dots: Record<Tone, string> = {
@@ -33,7 +33,7 @@ const dots: Record<Tone, string> = {
 
 export function Badge({ tone = 'gray', children, dot, className }: { tone?: Tone; children: ReactNode; dot?: boolean; className?: string }) {
   return (
-    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset', tones[tone], className)}>
+    <span className={cn('inline-flex items-center gap-1.5 rounded-lg px-2 py-0.5 text-xs font-medium whitespace-nowrap ring-1 ring-inset dark:bg-transparent', tones[tone], className)}>
       {dot && <span className={cn('h-1.5 w-1.5 rounded-full', dots[tone])} />}
       {children}
     </span>

@@ -18,7 +18,7 @@ export function PayPage() {
     <div className="flex min-h-dvh items-start justify-center bg-slate-50 px-4 py-10 dark:bg-slate-950">
       <div className="w-full max-w-md">
         <div className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white"><Dumbbell className="h-5 w-5" /></span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-brand-300 dark:bg-slate-900"><Dumbbell className="h-5 w-5" /></span>
           <span className="font-semibold">{data?.gymName ?? 'GymFlow'}</span>
         </div>
         {isLoading ? (

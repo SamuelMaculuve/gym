@@ -9,6 +9,15 @@ import { AuthProvider } from './lib/auth';
 import { ThemeProvider, useTheme } from './lib/theme';
 import './index.css';
 
+// Proxima Nova via Adobe Fonts: define VITE_ADOBE_FONTS_KIT com o ID do kit (ex.: abc1def).
+const fontKit = import.meta.env.VITE_ADOBE_FONTS_KIT;
+if (fontKit) {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = `https://use.typekit.net/${fontKit}.css`;
+  document.head.appendChild(link);
+}
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {

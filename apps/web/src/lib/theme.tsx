@@ -12,7 +12,8 @@ function initialTheme(): Theme {
   } catch {
     /* ignora */
   }
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  // O visual foi desenhado para o modo escuro; o claro fica disponível no menu.
+  return 'dark';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

@@ -8,7 +8,7 @@ import { useAuth } from '../lib/auth';
 export function FullScreenLoader() {
   return (
     <div className="flex min-h-dvh items-center justify-center">
-      <span className="flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl bg-brand-600 text-white">
+      <span className="flex h-12 w-12 animate-pulse items-center justify-center rounded-2xl bg-slate-900 text-brand-300 dark:bg-slate-900">
         <Dumbbell className="h-6 w-6" />
       </span>
     </div>

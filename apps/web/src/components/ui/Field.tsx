@@ -3,9 +3,9 @@ import { ChevronDown } from 'lucide-react';
 import { cn } from '../../lib/cn';
 
 export const controlClass =
-  'w-full rounded-lg border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition-colors ' +
+  'w-full rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 placeholder:text-slate-400 shadow-xs transition-colors ' +
   'focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 focus:outline-none disabled:bg-slate-50 disabled:text-slate-500 ' +
-  'dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-800';
+  'dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-100 dark:placeholder:text-slate-500 dark:disabled:bg-slate-900';
 
 interface FieldProps {
   label?: ReactNode;
@@ -153,7 +153,7 @@ export function Switch({
         onClick={() => onChange(!checked)}
         className={cn(
           'relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors',
-          checked ? 'bg-brand-600' : 'bg-slate-300 dark:bg-slate-700',
+          checked ? 'bg-brand-500' : 'bg-slate-300 dark:bg-slate-700',
         )}
       >
         <span className={cn('inline-block h-5 w-5 rounded-full bg-white shadow transition-transform', checked ? 'translate-x-5' : 'translate-x-0.5')} />

@@ -174,7 +174,7 @@ export function SettingsPage() {
                             key={d}
                             type="button"
                             onClick={() => field.onChange(on ? field.value.filter((x) => x !== d) : [...(field.value ?? []), d].sort())}
-                            className={cn('rounded-lg px-3 py-1.5 text-xs font-medium', on ? 'bg-brand-600 text-white' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300')}
+                            className={cn('rounded-lg px-3 py-1.5 text-xs font-medium', on ? 'bg-brand-300 text-slate-950' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300')}
                           >
                             {WEEKDAY_LABELS[d].slice(0, 3)}
                           </button>

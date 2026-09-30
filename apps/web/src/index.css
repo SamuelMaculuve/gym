@@ -3,21 +3,36 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Proxima Nova (Adobe Fonts ou instalada localmente); Montserrat como substituto livre. */
+  --font-sans: 'proxima-nova', 'Proxima Nova', 'Montserrat', system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-brand-50: #ecfdf5;
-  --color-brand-100: #d1fae5;
-  --color-brand-200: #a7f3d0;
-  --color-brand-300: #6ee7b7;
-  --color-brand-400: #34d399;
-  --color-brand-500: #10b981;
-  --color-brand-600: #059669;
-  --color-brand-700: #047857;
-  --color-brand-800: #065f46;
-  --color-brand-900: #064e3b;
+  /* Neutros quase pretos (substituem o slate azulado) */
+  --color-slate-50: #f6f6f7;
+  --color-slate-100: #ededef;
+  --color-slate-200: #dfdfe2;
+  --color-slate-300: #c6c6cb;
+  --color-slate-400: #9a9aa2;
+  --color-slate-500: #75757d;
+  --color-slate-600: #56565d;
+  --color-slate-700: #3a3a3f;
+  --color-slate-800: #27272b;
+  --color-slate-900: #151517;
+  --color-slate-950: #0b0b0c;
+
+  /* Acento lima */
+  --color-brand-50: #f7fee7;
+  --color-brand-100: #ecfccb;
+  --color-brand-200: #e2f9a6;
+  --color-brand-300: #d4f58a;
+  --color-brand-400: #bfe95a;
+  --color-brand-500: #a3d934;
+  --color-brand-600: #7fb31a;
+  --color-brand-700: #4d7c0f;
+  --color-brand-800: #3f6212;
+  --color-brand-900: #365314;
 
   /* Paleta de gráficos (validada) */
-  --color-series-1: #2a78d6;
+  --color-series-1: #4d7c0f;
   --color-status-good: #0ca30c;
   --color-status-warning: #fab219;
   --color-status-serious: #ec835a;
@@ -41,7 +56,7 @@
 }
 
 .dark {
-  --color-series-1: #3987e5;
+  --color-series-1: #d4f58a;
 }
 
 @layer base {
@@ -65,6 +80,10 @@
   }
   .scrollbar-thin {
     scrollbar-width: thin;
+  }
+  /* Textura tracejada (barras não destacadas, como na referência) */
+  .hatch {
+    background-image: repeating-linear-gradient(135deg, currentColor 0 1px, transparent 1px 7px);
   }
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);

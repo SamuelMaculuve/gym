@@ -19,14 +19,16 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   permission: Permission;
+  /** Aparece directamente na navegação em pílula (os restantes vão para "Mais"). */
+  primary?: boolean;
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard, permission: 'dashboard:view' },
-  { to: '/members', label: 'Membros', icon: Users, permission: 'members:read' },
-  { to: '/subscriptions', label: 'Subscrições', icon: Repeat, permission: 'subscriptions:read' },
-  { to: '/payments', label: 'Pagamentos', icon: CreditCard, permission: 'payments:read' },
-  { to: '/attendance', label: 'Presenças', icon: CalendarCheck, permission: 'attendance:read' },
+  { to: '/', label: 'Início', icon: LayoutDashboard, permission: 'dashboard:view', primary: true },
+  { to: '/members', label: 'Membros', icon: Users, permission: 'members:read', primary: true },
+  { to: '/subscriptions', label: 'Subscrições', icon: Repeat, permission: 'subscriptions:read', primary: true },
+  { to: '/payments', label: 'Pagamentos', icon: CreditCard, permission: 'payments:read', primary: true },
+  { to: '/attendance', label: 'Presenças', icon: CalendarCheck, permission: 'attendance:read', primary: true },
   { to: '/plans', label: 'Planos', icon: ListChecks, permission: 'plans:read' },
   { to: '/reports', label: 'Relatórios', icon: FileBarChart, permission: 'reports:read' },
   { to: '/notifications', label: 'Notificações', icon: Bell, permission: 'notifications:read' },

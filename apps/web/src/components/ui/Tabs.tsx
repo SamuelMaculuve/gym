@@ -11,10 +11,10 @@ export function Tabs<T extends string>({ value, onChange, items, className }: { 
           aria-selected={value === item.value}
           onClick={() => onChange(item.value)}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
+            'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors',
             value === item.value
               ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
-              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800',
+              : 'text-slate-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-900',
           )}
         >
           {item.label}

@@ -23,7 +23,7 @@ export function AuthLayout({ title, description, children }: { title: string; de
       <div className="flex items-center justify-center px-4 py-12 sm:px-8">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-600 text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-900 text-brand-300 dark:bg-slate-900">
               <Dumbbell className="h-5 w-5" />
             </span>
             <span className="font-semibold">GymFlow</span>
