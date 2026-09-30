@@ -1,6 +1,6 @@
 import { env } from './config/env';
 import { createApp } from './app';
-import { scheduleReminders } from './jobs/reminders';
+import { scheduleReminders } from './jobs/schedule';
 import { prisma } from './lib/prisma';
 
 const app = createApp();

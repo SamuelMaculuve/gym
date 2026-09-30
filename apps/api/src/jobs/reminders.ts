@@ -1,4 +1,3 @@
-import cron from 'node-cron';
 import {
   localHour,
   reminderDedupeKey,
@@ -93,14 +92,4 @@ export async function runReminders(options: RunOptions = {}): Promise<ReminderRu
     if (!options.dryRun) running = false;
   }
   return result;
-}
-
-/** Agenda o motor de lembretes a cada hora (respeita a hora de envio de cada ginásio). */
-export function scheduleReminders() {
-  cron.schedule('5 * * * *', () => {
-    runReminders()
-      .then((r) => r.processed && console.info(`[lembretes] processados=${r.processed} enviados=${r.sent} falhados=${r.failed}`))
-      .catch((e) => console.error('[lembretes] erro', e));
-  });
-  console.info('[lembretes] agendados (a cada hora, ao minuto 5)');
 }
