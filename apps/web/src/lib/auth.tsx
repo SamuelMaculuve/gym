@@ -50,8 +50,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       /* sessão já inválida */
     }
     await tokenStorage.set(null);
-    queryClient.clear();
+    // Primeiro marca o utilizador como nulo (os ecrãs ligados a "me" são avisados e vão para o
+    // login); só depois limpa o resto. Um clear() antes desligaria esses ecrãs da consulta.
     queryClient.setQueryData(qk.me, null);
+    queryClient.removeQueries({ predicate: (q) => q.queryKey[0] !== 'me' });
   }, [queryClient]);
 
   const user = me.data?.user ?? null;

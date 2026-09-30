@@ -4,8 +4,7 @@ import { PrismaClient } from '@prisma/client';
 /**
  * Ligação ao Postgres: `DATABASE_URL` (ou `NETLIFY_DB_URL`, se a Netlify Database estiver activa).
  * Sem nenhuma das duas, a API corre em **modo demonstração**: um Postgres em memória (PGlite)
- * dentro do próprio processo, criado e semeado no arranque. Os dados perdem-se quando a
- * instância é reciclada — serve apenas para demonstrações.
+ * dentro do próprio processo, semeado no arranque e guardado no Netlify Blobs (ver demo/runtime.ts).
  */
 export function databaseUrl(): string | null {
   return process.env.DATABASE_URL || process.env.NETLIFY_DB_URL || null;
@@ -17,7 +16,6 @@ const serverless = Boolean(process.env.NETLIFY || process.env.AWS_LAMBDA_FUNCTIO
 let client: PrismaClient | null = null;
 let clientUrl: string | null = null;
 let memoryUrl: string | null = null;
-let ready: Promise<void> | null = null;
 
 function createClient(url: string, max: number) {
   const adapter = new PrismaPg({ connectionString: url, max, idleTimeoutMillis: 10_000 });
@@ -41,22 +39,22 @@ function currentClient(): PrismaClient {
   return client;
 }
 
-/** Garante que a base de dados está pronta. No modo demonstração, cria-a e semeia-a (uma vez por instância). */
-export function ensureDatabase(): Promise<void> {
-  if (!inMemoryDb) return Promise.resolve();
-  ready ??= (async () => {
-    const started = Date.now();
-    const { startMemoryDatabase } = await import('../demo/memory-db');
-    memoryUrl = await startMemoryDatabase();
-    const { seedDemo } = await import('../demo/seed-demo');
-    // Os telefones de demonstração podem existir: nunca enviar notificações reais.
-    await seedDemo(currentClient(), { notificationsEnabled: false });
-    console.info(`[demo] Base de dados em memória pronta em ${Date.now() - started} ms (sem DATABASE_URL).`);
-  })().catch((e) => {
-    ready = null;
-    throw e;
-  });
-  return ready;
+/** Liga o Prisma a outra base em memória (nova ou recarregada), fechando a ligação anterior. */
+export async function switchMemoryDatabase(url: string) {
+  const previous = client;
+  client = null;
+  memoryUrl = url;
+  await previous?.$disconnect().catch(() => undefined);
+}
+
+/**
+ * Garante que a base de dados está pronta. No modo demonstração cria-a (1.º pedido) e, na
+ * Netlify, sincroniza-a com o Netlify Blobs (ver demo/runtime.ts).
+ */
+export async function ensureDatabase(): Promise<void> {
+  if (!inMemoryDb) return;
+  const { syncDemoDatabase } = await import('../demo/runtime');
+  await syncDemoDatabase();
 }
 
 /** Cliente Prisma partilhado (proxy para a ligação actual). */

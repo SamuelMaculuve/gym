@@ -1,0 +1,13 @@
+instância em 4202
+[demo] Base de dados recarregada do Netlify Blobs em 375 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 266 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 358 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 299 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 243 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 296 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 237 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 240 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 277 ms.
+[demo] Base de dados recarregada do Netlify Blobs em 250 ms.
+(node:15601) DeprecationWarning: Calling client.query() when the client is already executing a query is deprecated and will be removed in pg@9.0. Use async/await or an external async flow control mechanism instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)

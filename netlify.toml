@@ -28,12 +28,7 @@
     "!node_modules/.prisma/client/query_engine_bg.*",
   ]
 
-# API no mesmo domínio
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/api/:splat"
-  status = 200
-  force = true
+# A API é servida em /api/* pela própria função (config.path em netlify/functions/api.mts).
 
 # SPA: todas as outras rotas servem index.html
 [[redirects]]
