@@ -100,7 +100,7 @@ Tudo corre na Netlify:
 | Frontend | `apps/web/dist` (CDN) |
 | API | Netlify Function `netlify/functions/api.mts`, servida em `/api/*` no mesmo domínio (sem CORS) |
 | Lembretes | Scheduled Function `netlify/functions/reminders.mts` (`@hourly`) |
-| Base de dados | `DATABASE_URL` (Postgres externo, ex.: Neon). Sem ela: **modo demonstração**, um Postgres em memória semeado com dados de exemplo em cada arranque da função. Os dados criados na demo **não persistem** (perdem-se quando a Netlify recicla a função, tipicamente após alguns minutos sem uso) |
+| Base de dados | `DATABASE_URL` (Postgres externo, ex.: Neon). Sem ela: **modo demonstração**, um Postgres em memória (PGlite) guardado no **Netlify Blobs**: todas as instâncias da função partilham os mesmos dados e estes persistem. Pensado para demonstrações (cada gravação envia a base inteira, ~5 MB). Para repor os dados iniciais, apague o blob `demo-db` no painel da Netlify |
 
 Passos:
 

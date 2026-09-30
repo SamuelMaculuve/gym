@@ -1,6 +1,7 @@
 /**
  * API do GymFlow como Netlify Function (formato v2), servida em /api/* no mesmo domínio do
- * site — sem CORS nem VITE_API_URL em produção.
+ * site (redirect em netlify.toml) — sem CORS nem VITE_API_URL em produção.
+ * Empacotada por scripts/build-functions.mjs.
  * Base de dados: DATABASE_URL; sem ela, corre em modo demonstração (Postgres em memória
  * guardado no Netlify Blobs, ver apps/api/src/demo/runtime.ts).
  */
@@ -48,5 +49,3 @@ export default async (req: Request, context: Context) => {
   const payload = res.isBase64Encoded ? Buffer.from(res.body, 'base64') : res.body;
   return new Response(res.statusCode === 204 || res.statusCode === 304 ? null : payload, { status: res.statusCode, headers: out });
 };
-
-export const config = { path: '/api/*' };

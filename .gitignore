@@ -7,3 +7,8 @@
 .tmp-fn-test
 dist
 node_modules
+
+# Ficheiros temporários de testes locais
+.fn-test/
+# Funções empacotadas no build (scripts/build-functions.mjs)
+netlify/functions-built/

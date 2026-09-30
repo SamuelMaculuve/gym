@@ -16,7 +16,7 @@
     "db:setup": "npm run db:push -w @gymflow/api && npm run db:seed -w @gymflow/api",
     "db:reset": "npm run db:reset -w @gymflow/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "build:netlify": "npm run db:generate -w @gymflow/api && npm run build -w @gymflow/web",
+    "build:netlify": "npm run db:generate -w @gymflow/api && node scripts/build-functions.mjs && npm run build -w @gymflow/web",
     "dev:netlify": "netlify dev"
   },
   "engines": {

@@ -20,7 +20,7 @@ Documento de referência da arquitectura, do modelo de dados e dos fluxos princi
 └──────────────────────────┬──────────────────────────┘
                            ▼
           PostgreSQL (DATABASE_URL)
-   (sem ela: modo demonstração, PGlite em memória semeado no arranque)
+   (sem ela: modo demonstração, PGlite em memória guardado no Netlify Blobs)
 ```
 
 Princípios:
