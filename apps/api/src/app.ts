@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import { env } from './config/env';
+import { ensureDatabase } from './lib/prisma';
 import { authenticate } from './middleware/auth';
 import { errorHandler, notFoundHandler } from './middleware/error';
 import { apiLimiter } from './middleware/rate-limit';
@@ -41,6 +42,11 @@ export function createApp() {
   app.use('/api', apiLimiter);
 
   app.get('/api/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
+  // Modo demonstração: a base de dados em memória é criada no primeiro pedido de cada instância.
+  app.use('/api', (_req, _res, next) => {
+    ensureDatabase().then(() => next(), next);
+  });
 
   // Rotas públicas
   app.use('/api/auth', authRouter);

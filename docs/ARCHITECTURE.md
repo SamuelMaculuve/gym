@@ -19,8 +19,8 @@ Documento de referência da arquitectura, do modelo de dados e dos fluxos princi
 │  ReminderEngine (cron) · PaymentGateway (futuro)     │
 └──────────────────────────┬──────────────────────────┘
                            ▼
-                Netlify Database (Postgres)
-   (local com `netlify dev`; qualquer PostgreSQL fora da Netlify)
+          PostgreSQL (DATABASE_URL)
+   (sem ela: modo demonstração, PGlite em memória semeado no arranque)
 ```
 
 Princípios:
@@ -42,7 +42,6 @@ gym/
 ├── package.json                 # npm workspaces
 ├── netlify.toml                 # build, funções, redirects /api e SPA
 ├── netlify/functions/           # api.mts (Express) e reminders.mts (agendada, @hourly)
-├── netlify/database/migrations/ # migrações SQL aplicadas pela Netlify em cada deploy
 ├── .env.example
 ├── docs/ARCHITECTURE.md
 ├── packages/shared/src/

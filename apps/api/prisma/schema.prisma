@@ -1,6 +1,6 @@
 // GymFlow — modelo relacional (PostgreSQL).
 // Produção: Netlify Database (Postgres gerido). Desenvolvimento: `netlify dev` ou qualquer Postgres.
-// As migrações SQL vivem em /netlify/database/migrations e são aplicadas pela Netlify em cada deploy.
+// Depois de alterar o schema: `npm run db:push` (Postgres real) e `npm run db:schema-sql` (modo demonstração em memória).
 // Enumerações são guardadas como texto e validadas pelos schemas Zod em @gymflow/shared.
 // Datas de calendário (YYYY-MM-DD, fuso do ginásio) são String; instantes são DateTime (UTC).
 // Valores monetários em cêntimos (Int).

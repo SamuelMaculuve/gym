@@ -14,11 +14,12 @@
     "db:reset": "prisma db push && tsx --env-file-if-exists=.env prisma/seed.ts",
     "reminders:run": "tsx --env-file-if-exists=.env src/jobs/run-once.ts",
     "db:generate": "prisma generate",
-    "db:migration:new": "node scripts/new-migration.mjs"
+    "db:schema-sql": "node scripts/schema-sql.mjs"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "@electric-sql/pglite-socket": "^0.2.11",
     "@gymflow/shared": "*",
-    "@netlify/database": "^2.0.1",
     "@prisma/adapter-pg": "~6.19.0",
     "@prisma/client": "~6.19.0",
     "bcryptjs": "^3.0.2",

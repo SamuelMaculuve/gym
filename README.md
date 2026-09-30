@@ -11,7 +11,7 @@ Aplicação web para gerir **membros, planos, subscrições, pagamentos, lembret
 | Frontend (`apps/web`) | React 19, TypeScript, Vite, Tailwind CSS 4, React Router 7, TanStack Query, React Hook Form + Zod, Recharts, Lucide |
 | API (`apps/api`) | Node.js, Express 5, Prisma (driver `pg`), Zod, bcrypt, Nodemailer — corre como Netlify Function |
 | Partilhado (`packages/shared`) | Tipos, schemas Zod, regras de negócio puras e cliente HTTP (reutilizável no Expo) |
-| Base de dados | **Netlify Database** (Postgres gerido) · qualquer PostgreSQL fora da Netlify |
+| Base de dados | Qualquer PostgreSQL (`DATABASE_URL`) · sem ela, **modo demonstração** em memória (PGlite) |
 
 ## Início rápido
 
@@ -58,7 +58,7 @@ O seed cria 20 membros, 4 planos activos (e 1 inactivo), cerca de 90 pagamentos 
 | `npm run build:api` | Bundle da API como servidor Node (para alojar fora da Netlify) |
 | `npm run db:setup` | Cria o schema (`prisma db push`) e carrega os dados de demonstração |
 | `npm run db:reset` | Apaga todos os dados e volta a semear |
-| `npm run db:migration:new -w @gymflow/api -- <nome>` | Gera uma nova migração SQL para a Netlify a partir do `schema.prisma` |
+| `npm run db:schema-sql -w @gymflow/api` | Regenera o SQL do modo demonstração (em memória) a partir do `schema.prisma` |
 | `npm run typecheck` | Verificação de tipos em todos os pacotes |
 | `npm test -w @gymflow/shared` | Testes das regras de negócio (estados, lembretes) |
 | `npm run reminders:run -w @gymflow/api -- --force` | Executa o motor de lembretes uma vez |
@@ -100,7 +100,7 @@ Tudo corre na Netlify:
 | Frontend | `apps/web/dist` (CDN) |
 | API | Netlify Function `netlify/functions/api.mts`, servida em `/api/*` no mesmo domínio (sem CORS) |
 | Lembretes | Scheduled Function `netlify/functions/reminders.mts` (`@hourly`) |
-| Base de dados | Netlify Database. As migrações em `netlify/database/migrations/` são aplicadas automaticamente em cada deploy, e cada deploy preview tem a sua própria cópia da base |
+| Base de dados | `DATABASE_URL` (Postgres externo, ex.: Neon). Sem ela: **modo demonstração**, um Postgres em memória semeado com dados de exemplo em cada arranque da função. Os dados criados na demo **não persistem** (perdem-se quando a Netlify recicla a função, tipicamente após alguns minutos sem uso) |
 
 Passos:
 
@@ -110,15 +110,17 @@ Passos:
    - `CRON_SECRET` (opcional)
    - os fornecedores de notificações (`WHATSAPP_*`, `SMTP_*`, `EMAIL_PROVIDER`…)
 
-   Não defina `DATABASE_URL`: a Netlify fornece `NETLIFY_DB_URL` automaticamente.
-3. Faça o deploy. A Netlify cria a base de dados e aplica as migrações antes de publicar.
-4. Abra o site: com a base de dados vazia, aparece o assistente **/setup**. Indique o `SETUP_TOKEN`, o nome do ginásio e os dados do administrador. Pode activar "Incluir dados de demonstração" para ver o sistema preenchido.
+   - `DATABASE_URL` (opcional): Postgres para dados persistentes. Sem ela, o site funciona em modo demonstração.
+3. Faça o deploy.
+4. Abra o site:
+   - **Modo demonstração:** entre com uma das contas mostradas no login (ex.: `admin@gymflow.co.mz` / `Admin@2026`).
+   - **Com `DATABASE_URL`:** crie as tabelas uma vez (`DATABASE_URL=… npm run db:push -w @gymflow/api`). Com a base vazia aparece o assistente **/setup**: indique o `SETUP_TOKEN`, o nome do ginásio e os dados do administrador.
 
 ### Alterar o modelo de dados
 
 1. Edite `apps/api/prisma/schema.prisma`.
-2. Com a base local actualizada (`netlify dev`), corra `DATABASE_URL=<local> npm run db:migration:new -w @gymflow/api -- <nome>`.
-3. Reveja o SQL gerado em `netlify/database/migrations/<timestamp>_<nome>/migration.sql` e faça commit. A Netlify aplica-o no próximo deploy. Prefira alterações compatíveis com a versão anterior ("expand and contract").
+2. Corra `npm run db:schema-sql -w @gymflow/api` (actualiza o SQL do modo demonstração) e faça commit.
+3. Numa base real, aplique com `DATABASE_URL=… npm run db:push -w @gymflow/api`. Prefira alterações compatíveis com a versão anterior ("expand and contract").
 
 ### Alojar a API fora da Netlify (opcional)
 

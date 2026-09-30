@@ -24,8 +24,5 @@
   },
   "overrides": {
     "deepmerge-ts": "^8.0.0"
-  },
-  "dependencies": {
-    "@netlify/database": "^2.0.1"
   }
 }

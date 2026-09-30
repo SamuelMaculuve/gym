@@ -8,7 +8,7 @@ const bool = z
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.coerce.number().default(4000),
-  // Opcional: na Netlify a ligação vem de NETLIFY_DB_URL (ver lib/prisma.ts).
+  // Opcional: sem DATABASE_URL a API usa uma base de dados em memória com dados de demonstração (ver lib/prisma.ts).
   DATABASE_URL: z.string().optional(),
   // Na Netlify, URL é o endereço principal do site (definido automaticamente).
   CORS_ORIGIN: z.string().default(process.env.URL ?? 'http://localhost:5173'),

@@ -1,10 +1,13 @@
-# GymFlow na Netlify: frontend (apps/web) + API (Netlify Functions) + Netlify Database (Postgres).
+# GymFlow na Netlify: frontend (apps/web) + API (Netlify Functions).
+# Base de dados: DATABASE_URL (Postgres). Sem ela, a API corre em modo demonstração com um
+# Postgres em memória (PGlite) semeado em cada arranque — os dados não persistem.
 #
 # Variáveis de ambiente a definir no painel do site:
 #   SETUP_TOKEN   código para o assistente de configuração inicial (/setup) — obrigatório
 #   CRON_SECRET   (opcional) para chamar POST /api/cron/reminders a partir de fora
 #   WHATSAPP_* / SMTP_* / SMS_*   fornecedores de notificações (ver .env.example)
-# NETLIFY_DB_URL e URL são definidas automaticamente pela Netlify.
+#   DATABASE_URL  (opcional) Postgres para dados persistentes
+# URL é definida automaticamente pela Netlify.
 
 [build]
   command = "npm run build:netlify"
@@ -17,7 +20,8 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
   # O Prisma carrega o compilador de queries (WASM) do disco: tem de ir junto com a função.
-  external_node_modules = ["@prisma/client", ".prisma", "@prisma/adapter-pg", "pg"]
+  # O PGlite (modo demonstração) também lê os seus ficheiros .wasm/.data do disco.
+  external_node_modules = ["@prisma/client", ".prisma", "@prisma/adapter-pg", "pg", "@electric-sql/pglite", "@electric-sql/pglite-socket"]
   included_files = [
     "node_modules/.prisma/client/**",
     "!node_modules/.prisma/client/libquery_engine-*",
