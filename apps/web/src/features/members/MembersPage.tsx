@@ -1,5 +1,6 @@
-import { BellRing, CreditCard, UserPlus, Users } from 'lucide-react';
-import { useCallback } from 'react';
+import { ArchiveRestore, BellRing, CreditCard, Megaphone, UserPlus, Users } from 'lucide-react';
+import { toast } from 'sonner';
+import { useCallback, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router';
 import {
   formatDate,
@@ -19,13 +20,16 @@ import { api } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { cn } from '../../lib/cn';
 import { usePlans } from '../plans/hooks';
-import { useMembers } from './hooks';
+import { useArchiveMember, useMembers } from './hooks';
+import { BroadcastDialog } from '../notifications/BroadcastDialog';
+import { errorMessage } from '../../lib/errors';
 
 export function MembersPage() {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const quick = useQuickActions();
   const { can } = useAuth();
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const plans = usePlans();
   const canRemind = can('notifications:write') || can('members:write');
 
@@ -88,7 +92,8 @@ export function MembersPage() {
       align: 'right',
       cell: (m) => (
         <div className="flex justify-end gap-1">
-          {canRemind && m.subscriptionId && m.status !== 'CANCELLED' && (
+          {m.archivedAt && can('members:write') && <RestoreButton id={m.id} name={m.fullName} />}
+          {!m.archivedAt && canRemind && m.subscriptionId && m.status !== 'CANCELLED' && (
             <Button
               size="sm"
               variant="ghost"
@@ -102,7 +107,7 @@ export function MembersPage() {
               }}
             />
           )}
-          {can('payments:write') && (
+          {!m.archivedAt && can('payments:write') && (
             <Button
               size="sm"
               variant="ghost"
@@ -122,6 +127,7 @@ export function MembersPage() {
 
   return (
     <>
+      <BroadcastDialog open={broadcastOpen} onClose={() => setBroadcastOpen(false)} />
       <PageHeader
         title="Membros"
         description={data ? `${data.total} ${data.total === 1 ? 'membro' : 'membros'}` : undefined}
@@ -149,6 +155,11 @@ export function MembersPage() {
                 };
               }}
             />
+            {(can('notifications:write') || can('members:write')) && (
+              <Button variant="outline" icon={<Megaphone className="h-4 w-4" />} onClick={() => setBroadcastOpen(true)}>
+                Mensagem a todos
+              </Button>
+            )}
             {can('members:write') && (
               <Button icon={<UserPlus className="h-4 w-4" />} onClick={quick.openNewMember}>
                 Novo membro
@@ -206,5 +217,24 @@ export function MembersPage() {
         />
       </Card>
     </>
+  );
+}
+
+/** Restaurar directamente da lista de arquivados. */
+function RestoreButton({ id, name }: { id: string; name: string }) {
+  const archive = useArchiveMember(id);
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      icon={<ArchiveRestore className="h-4 w-4" />}
+      loading={archive.isPending}
+      onClick={(e) => {
+        e.stopPropagation();
+        archive.mutateAsync(false).then(() => toast.success(`${name} foi restaurado`), (err) => toast.error(errorMessage(err)));
+      }}
+    >
+      Restaurar
+    </Button>
   );
 }

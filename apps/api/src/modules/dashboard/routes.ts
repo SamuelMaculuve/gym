@@ -57,11 +57,11 @@ dashboardRouter.get('/', requirePermission('dashboard:view'), async (req, res) =
   const memberById = new Map(members.map((m) => [m.member.id, m.member]));
   const topAttendees = recentAttendance
     .sort((a, b) => b._count - a._count)
-    .slice(0, 5)
     .flatMap((a) => {
-      const m = memberById.get(a.memberId);
+      const m = memberById.get(a.memberId); // ausente = arquivado
       return m ? [{ ...toMemberRef(m), visits: a._count }] : [];
-    });
+    })
+    .slice(0, 5);
 
   const lastVisits = await prisma.attendance.groupBy({ by: ['memberId'], where: { gymId: ctx.gym.id }, _max: { date: true } });
   const lastVisitBy = new Map(lastVisits.map((v) => [v.memberId, v._max.date]));

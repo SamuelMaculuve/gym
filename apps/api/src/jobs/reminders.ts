@@ -42,6 +42,7 @@ export async function runReminders(options: RunOptions = {}): Promise<ReminderRu
         where: {
           gymId: gym.id,
           active: true,
+          archivedAt: null,
           notificationsEnabled: true,
           currentSubscription: { state: 'NORMAL', remindersPaused: false },
         },

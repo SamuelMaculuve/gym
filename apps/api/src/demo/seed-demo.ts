@@ -5,7 +5,11 @@
 import bcrypt from 'bcryptjs';
 import type { PrismaClient } from '@prisma/client';
 import { createGymWithDefaults } from '../modules/setup/bootstrap';
+import { normalizePhone } from '@gymflow/shared';
 import { createDemoData } from './demo-data';
+
+/** Número real para testar mensagens na demo (o único membro com notificações activas). */
+const DEMO_CONTACT_PHONE = normalizePhone(process.env.DEMO_CONTACT_PHONE || '844552968');
 
 export const DEMO_ACCOUNTS = [
   { name: 'Administrador', email: 'admin@gymflow.co.mz', role: 'ADMIN', password: 'Admin@2026' },
@@ -30,7 +34,14 @@ export async function seedDemo(db: PrismaClient, opts: { notificationsEnabled?: 
     DEMO_ACCOUNTS.map(async (u) => db.user.create({ data: { gymId: gym.id, name: u.name, email: u.email, role: u.role, passwordHash: await bcrypt.hash(u.password, 10) } })),
   );
 
-  const counts = await createDemoData(db, { gym, plans, staff: [reception, reception, reception, manager], manager, notificationsEnabled: opts.notificationsEnabled });
+  const counts = await createDemoData(db, {
+    gym,
+    plans,
+    staff: [reception, reception, reception, manager],
+    manager,
+    notificationsEnabled: opts.notificationsEnabled,
+    contactPhone: DEMO_CONTACT_PHONE,
+  });
   await db.auditLog.create({
     data: {
       gymId: gym.id,

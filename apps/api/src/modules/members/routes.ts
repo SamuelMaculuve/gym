@@ -5,7 +5,7 @@ import { toMemberDTO, toPaymentDTO, toSubscriptionDTO } from '../../lib/mappers'
 import { actorOf, currentUser, requirePermission } from '../../middleware/auth';
 import { body, query, param } from '../../middleware/validate';
 import { notificationService } from '../../services/notifications/notification-service';
-import { createMember, getMemberDetail, getMemberQr, listMembers, updateMember } from './service';
+import { createMember, getMemberDetail, getMemberQr, listMembers, setMemberArchived, updateMember } from './service';
 
 export const membersRouter = Router();
 
@@ -44,6 +44,16 @@ membersRouter.get('/:id', requirePermission('members:read'), async (req, res) =>
 membersRouter.patch('/:id', requirePermission('members:write'), async (req, res) => {
   const ctx = await getGymContext(currentUser(req).gymId);
   res.json(await updateMember(ctx, param(req, 'id'), body(req, memberUpdateSchema), actorOf(req)));
+});
+
+membersRouter.post('/:id/archive', requirePermission('members:write'), async (req, res) => {
+  const ctx = await getGymContext(currentUser(req).gymId);
+  res.json(await setMemberArchived(ctx, param(req, 'id'), true, actorOf(req)));
+});
+
+membersRouter.post('/:id/restore', requirePermission('members:write'), async (req, res) => {
+  const ctx = await getGymContext(currentUser(req).gymId);
+  res.json(await setMemberArchived(ctx, param(req, 'id'), false, actorOf(req)));
 });
 
 membersRouter.get('/:id/qr', requirePermission('members:read', 'attendance:write'), async (req, res) => {

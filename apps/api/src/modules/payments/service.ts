@@ -10,7 +10,7 @@ import {
   type PaymentSource,
 } from '@gymflow/shared';
 import { audit } from '../../lib/audit';
-import { badRequest, notFound } from '../../lib/errors';
+import { assertNotArchived, badRequest, notFound } from '../../lib/errors';
 import type { GymContext } from '../../lib/gym';
 import { paymentInclude, toPaymentDTO } from '../../lib/mappers';
 import { prisma, type Tx } from '../../lib/prisma';
@@ -48,6 +48,7 @@ export async function registerPayment(tx: Tx, ctx: GymContext, input: RegisterPa
     include: { currentSubscription: { include: { plan: true } } },
   });
   if (!member) throw notFound('Membro não encontrado');
+  assertNotArchived(member);
   if (input.amountCents <= 0) throw badRequest('O valor deve ser superior a zero');
 
   const current = member.currentSubscription;

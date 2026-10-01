@@ -25,10 +25,13 @@ type Actor = { id: string; name: string; ip: string | null };
 
 export type MemberWithCurrent = Member & { currentSubscription: (Subscription & { plan: Pick<Plan, 'id' | 'name' | 'durationDays'> }) | null };
 
-/** Carrega todos os membros com o estado calculado (base para listas, dashboard e relatórios). */
-export async function loadMembersWithStatus(ctx: GymContext): Promise<{ member: MemberWithCurrent; item: MemberListItem }[]> {
+/**
+ * Carrega os membros com o estado calculado (base para listas, dashboard e relatórios).
+ * Os arquivados ficam de fora, excepto com `archived: true` (só esses).
+ */
+export async function loadMembersWithStatus(ctx: GymContext, opts: { archived?: boolean } = {}): Promise<{ member: MemberWithCurrent; item: MemberListItem }[]> {
   const members = await prisma.member.findMany({
-    where: { gymId: ctx.gym.id },
+    where: { gymId: ctx.gym.id, archivedAt: opts.archived ? { not: null } : null },
     include: { currentSubscription: { include: { plan: { select: { id: true, name: true, durationDays: true } } } } },
   });
   return members.map((member) => ({ member, item: toMemberListItem(member, ctx) }));
@@ -55,6 +58,7 @@ export function toMemberListItem(m: MemberWithCurrent, ctx: GymContext): MemberL
     lastPaymentDate: m.lastPaymentDate,
     subscriptionId: sub?.id ?? null,
     notificationsEnabled: m.notificationsEnabled,
+    archivedAt: m.archivedAt?.toISOString() ?? null,
   };
 }
 
@@ -74,13 +78,15 @@ export function matchesMemberFilter(item: MemberListItem, filter: MemberListQuer
       return item.dueDate === today && item.status === 'DUE_SOON';
     case 'due_7_days':
       return item.status === 'DUE_SOON';
+    case 'archived':
+      return true; // já carregados só os arquivados
     default:
       return true;
   }
 }
 
 export async function listMembers(ctx: GymContext, query: Required<Pick<MemberListQuery, 'filter' | 'sort' | 'order'>> & MemberListQuery & { page: number; pageSize: number }) {
-  const all = await loadMembersWithStatus(ctx);
+  const all = await loadMembersWithStatus(ctx, { archived: query.filter === 'archived' });
   const term = query.q ? normalizeSearch(query.q) : '';
   const digits = query.q?.replace(/\D/g, '') ?? '';
 
@@ -171,7 +177,10 @@ function personalData(input: Partial<MemberCreateInput & MemberUpdateInput>) {
 
 async function assertUniquePhone(gymId: string, phone: string, exceptId?: string) {
   const existing = await prisma.member.findFirst({ where: { gymId, phone, ...(exceptId ? { id: { not: exceptId } } : {}) } });
-  if (existing) throw conflict(`Já existe um membro com este telefone (${existing.code} — ${existing.fullName})`);
+  if (existing) {
+    const where = existing.archivedAt ? ', arquivado: restaure-o em Membros → Arquivados' : '';
+    throw conflict(`Já existe um membro com este telefone (${existing.code} — ${existing.fullName}${where})`);
+  }
 }
 
 type ParsedCreate = MemberCreateInput & { registerPayment: boolean; sendWelcome: boolean };
@@ -281,6 +290,24 @@ export async function updateMember(ctx: GymContext, id: string, input: MemberUpd
     summary: `${actor.name} actualizou ${what} do membro ${existing.code}.`,
     before: changes.before,
     after: changes.after,
+    ip: actor.ip,
+  });
+  return toMemberDTO(updated);
+}
+
+/** Arquiva (ou restaura) um membro. O histórico (pagamentos, presenças, mensagens) mantém-se. */
+export async function setMemberArchived(ctx: GymContext, id: string, archived: boolean, actor: Actor) {
+  const existing = await prisma.member.findFirst({ where: { id, gymId: ctx.gym.id } });
+  if (!existing) throw notFound('Membro não encontrado');
+  if (Boolean(existing.archivedAt) === archived) return toMemberDTO(existing);
+  const updated = await prisma.member.update({ where: { id }, data: { archivedAt: archived ? new Date() : null } });
+  await audit({
+    gymId: ctx.gym.id,
+    userId: actor.id,
+    action: archived ? 'member.archive' : 'member.restore',
+    entity: 'Member',
+    entityId: id,
+    summary: `${actor.name} ${archived ? 'arquivou' : 'restaurou'} o membro ${existing.fullName} (${existing.code}).`,
     ip: actor.ip,
   });
   return toMemberDTO(updated);

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { subscriptionActionSchema, subscriptionCreateSchema, subscriptionListQuery, subscriptionRemindersSchema } from '@gymflow/shared';
 import { audit } from '../../lib/audit';
-import { notFound } from '../../lib/errors';
+import { assertNotArchived, notFound } from '../../lib/errors';
 import { getGymContext } from '../../lib/gym';
 import { toSubscriptionDTO } from '../../lib/mappers';
 import { prisma } from '../../lib/prisma';
@@ -26,6 +26,7 @@ subscriptionsRouter.post('/', requirePermission('subscriptions:write'), async (r
     prisma.plan.findFirst({ where: { id: input.planId, gymId: ctx.gym.id } }),
   ]);
   if (!member) throw notFound('Membro não encontrado');
+  assertNotArchived(member);
   if (!plan) throw notFound('Plano não encontrado');
 
   const sub = await prisma.$transaction(async (tx) => {

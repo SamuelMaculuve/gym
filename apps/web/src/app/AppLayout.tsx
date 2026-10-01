@@ -37,6 +37,17 @@ const roundBtn = cn(roundBase, 'bg-slate-100 text-slate-700 hover:bg-slate-200 d
 const popover = 'animate-fade-in absolute right-0 z-40 mt-2 rounded-2xl border border-slate-200 bg-white p-1.5 shadow-xl dark:border-slate-800 dark:bg-slate-900';
 const popItem = 'flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800';
 
+/** Alterna entre modo claro e escuro (a escolha fica guardada neste browser). */
+function ThemeToggle() {
+  const { theme, toggle } = useTheme();
+  const label = theme === 'dark' ? 'Mudar para modo claro' : 'Mudar para modo escuro';
+  return (
+    <button onClick={toggle} className={roundBtn} aria-label={label} title={label}>
+      {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+    </button>
+  );
+}
+
 function Brand({ compact }: { compact?: boolean }) {
   const { gym } = useAuth();
   return (
@@ -340,6 +351,7 @@ function Shell() {
             <button onClick={() => setPaletteOpen(true)} className={roundBtn} aria-label="Pesquisa global (⌘K)" title="Pesquisar (⌘K)">
               <Search className="h-5 w-5" />
             </button>
+            <ThemeToggle />
             {can('notifications:read') && (
               <Link to="/notifications" className={cn(roundBtn, 'hidden sm:flex')} aria-label="Notificações" title="Notificações">
                 <Bell className="h-5 w-5" />

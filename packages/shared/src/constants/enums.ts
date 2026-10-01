@@ -120,7 +120,7 @@ export const WEEKDAY_LABELS: Record<number, string> = {
 };
 
 /** Filtros rápidos da lista de membros. */
-export const MEMBER_FILTERS = ['all', 'active', 'inactive', 'up_to_date', 'overdue', 'due_today', 'due_7_days'] as const;
+export const MEMBER_FILTERS = ['all', 'active', 'inactive', 'up_to_date', 'overdue', 'due_today', 'due_7_days', 'archived'] as const;
 export type MemberFilter = (typeof MEMBER_FILTERS)[number];
 
 export const MEMBER_FILTER_LABELS: Record<MemberFilter, string> = {
@@ -131,6 +131,7 @@ export const MEMBER_FILTER_LABELS: Record<MemberFilter, string> = {
   overdue: 'Pagamento em atraso',
   due_today: 'Vence hoje',
   due_7_days: 'Vence em 7 dias',
+  archived: 'Arquivados',
 };
 
 export const MEMBER_SORTS = ['name', 'joinedAt', 'dueDate', 'status', 'lastPayment'] as const;

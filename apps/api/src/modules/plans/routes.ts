@@ -32,7 +32,7 @@ plansRouter.get('/', requirePermission('plans:read', 'members:write', 'payments:
     prisma.plan.findMany({ where: { gymId, ...(includeInactive ? {} : { active: true }) }, orderBy: [{ active: 'desc' }, { durationDays: 'asc' }] }),
     prisma.member.groupBy({
       by: ['currentSubscriptionId'],
-      where: { gymId, currentSubscriptionId: { not: null } },
+      where: { gymId, archivedAt: null, currentSubscriptionId: { not: null } },
       _count: true,
     }),
   ]);

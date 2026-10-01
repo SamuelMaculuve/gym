@@ -11,7 +11,7 @@ import {
   type SubscriptionEvaluation,
 } from '@gymflow/shared';
 import { audit } from '../../lib/audit';
-import { badRequest, conflict, notFound } from '../../lib/errors';
+import { assertNotArchived, badRequest, conflict, notFound } from '../../lib/errors';
 import type { GymContext } from '../../lib/gym';
 import { evaluate, memberRefSelect, toAttendanceDTO, toMemberRef } from '../../lib/mappers';
 import { prisma } from '../../lib/prisma';
@@ -27,7 +27,7 @@ export async function findCandidates(ctx: GymContext, term: string, limit = 8): 
   const t = term.trim();
   if (t.length < 2) return [];
   const digits = t.replace(/\D/g, '');
-  const members = await prisma.member.findMany({ where: { gymId: ctx.gym.id }, include: memberInclude });
+  const members = await prisma.member.findMany({ where: { gymId: ctx.gym.id, archivedAt: null }, include: memberInclude });
   const n = normalizeSearch(t);
   return members
     .filter(
@@ -89,6 +89,7 @@ function accessMessage(e: SubscriptionEvaluation | null): string {
 export async function checkIn(ctx: GymContext, input: CheckInInput & { method: AttendanceMethod; force: boolean }, actor: Actor): Promise<CheckInResult> {
   const member = await resolveMember(ctx, input);
   if (!member) throw notFound('Membro não encontrado. Verifique o código, telefone ou QR Code.');
+  assertNotArchived(member);
   if (!member.active) throw badRequest(`O membro ${member.code} está inactivo.`);
 
   const sub = member.currentSubscription;
@@ -155,6 +156,7 @@ export async function checkOut(ctx: GymContext, id: string) {
 export async function createManualAttendance(ctx: GymContext, input: ManualAttendanceInput, actor: Actor) {
   const member = await prisma.member.findFirst({ where: { id: input.memberId, gymId: ctx.gym.id }, include: memberInclude });
   if (!member) throw notFound('Membro não encontrado');
+  assertNotArchived(member);
   if (input.date > ctx.today) throw badRequest('Não é possível registar presenças futuras');
   const checkInAt = zonedDateTimeToInstant(input.date, input.checkInTime, ctx.gym.timezone);
   const checkOutAt = input.checkOutTime ? zonedDateTimeToInstant(input.date, input.checkOutTime, ctx.gym.timezone) : null;

@@ -36,3 +36,22 @@ export const reminderSendSchema = z.object({
   channels: z.array(z.enum(NOTIFICATION_CHANNELS)).optional(),
 });
 export type ReminderSendInput = z.input<typeof reminderSendSchema>;
+
+/** Público de um envio em massa (subconjunto dos filtros de membros). */
+export const BROADCAST_AUDIENCES = ['active', 'all', 'due_7_days', 'due_today', 'overdue', 'inactive'] as const;
+export type BroadcastAudience = (typeof BROADCAST_AUDIENCES)[number];
+
+/**
+ * Envio em massa. Email: mensagem livre (assunto + texto, com variáveis como {{name}}).
+ * WhatsApp: lembrete de vencimento ou aviso de atraso consoante o estado de cada membro
+ * (templates aprovados). SMS: em breve.
+ */
+export const broadcastSchema = z.object({
+  channel: z.enum(NOTIFICATION_CHANNELS),
+  audience: z.enum(BROADCAST_AUDIENCES).default('active'),
+  subject: z.string().trim().max(150).optional().nullable(),
+  message: z.string().trim().max(4000).optional().nullable(),
+  /** true = só conta os destinatários, não envia. */
+  dryRun: z.boolean().default(false),
+});
+export type BroadcastInput = z.input<typeof broadcastSchema>;

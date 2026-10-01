@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { NotificationListQuery, ReminderSendInput, SendNotificationInput, TemplateUpdateInput } from '@gymflow/shared';
+import type { BroadcastInput, NotificationListQuery, ReminderSendInput, SendNotificationInput, TemplateUpdateInput } from '@gymflow/shared';
 import { api } from '../../lib/api';
 import { qk } from '../../lib/query-keys';
 
@@ -27,6 +27,24 @@ export function useResetTemplate() {
 export function useRunReminders() {
   const qc = useQueryClient();
   return useMutation({ mutationFn: (dryRun: boolean) => api.notifications.runReminders(dryRun), onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications }) });
+}
+
+/** Pré-visualização do envio em massa (quantos recebem, quem fica de fora). Não envia nada. */
+export function useBroadcastPreview(input: Pick<BroadcastInput, 'channel' | 'audience'>, enabled: boolean) {
+  return useQuery({
+    queryKey: [...qk.notifications, 'broadcast-preview', input.channel, input.audience],
+    queryFn: () => api.notifications.broadcast({ ...input, dryRun: true }),
+    enabled,
+    staleTime: 0,
+  });
+}
+
+export function useBroadcast() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: BroadcastInput) => api.notifications.broadcast({ ...input, dryRun: false }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: qk.notifications }),
+  });
 }
 
 export function useSendNotification() {

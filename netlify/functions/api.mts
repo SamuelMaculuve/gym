@@ -38,7 +38,8 @@ export default async (req: Request, context: Context) => {
   )) as { statusCode: number; headers?: Record<string, string>; multiValueHeaders?: Record<string, string[]>; body: string; isBase64Encoded?: boolean };
 
   // Modo demonstração: grava a base antes de responder, para o pedido seguinte (noutra instância) já a ver.
-  if (inMemoryDb && !READ_ONLY.has(req.method) && res.statusCode < 400) {
+  const noPersist = Object.keys(res.headers ?? {}).some((k) => k.toLowerCase() === 'x-no-persist');
+  if (inMemoryDb && !READ_ONLY.has(req.method) && res.statusCode < 400 && !noPersist) {
     const { persistDemoDatabase } = await import('../../apps/api/src/demo/runtime');
     await persistDemoDatabase().catch((e) => console.error('[demo] Falha ao gravar no Netlify Blobs', e));
   }

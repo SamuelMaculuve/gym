@@ -12,8 +12,8 @@ function initialTheme(): Theme {
   } catch {
     /* ignora */
   }
-  // O visual foi desenhado para o modo escuro; o claro fica disponível no menu.
-  return 'dark';
+  // Claro por omissão; o escuro fica guardado depois de o utilizador o escolher.
+  return 'light';
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

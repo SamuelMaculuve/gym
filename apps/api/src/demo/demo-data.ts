@@ -35,6 +35,8 @@ type Scenario = {
   absentDays?: number;
   email?: boolean;
   notificationsOff?: boolean;
+  /** Recebe o contacto real de testes (DemoDataInput.contactPhone), com notificações activas. */
+  contact?: boolean;
 };
 
 const SCENARIOS: Scenario[] = [
@@ -52,7 +54,7 @@ const SCENARIOS: Scenario[] = [
   { name: 'Dércio Langa', gender: 'MALE', plan: 1, endOffset: 86, periods: 1, freq: 0, paidCurrent: false },
   // A vencer nos próximos 7 dias
   { name: 'Célia Munguambe', gender: 'FEMALE', plan: 0, endOffset: 2, periods: 6, freq: 3, email: true },
-  { name: 'Armando Bila', gender: 'MALE', plan: 0, endOffset: 5, periods: 8, freq: 4 },
+  { name: 'Armando Bila', gender: 'MALE', plan: 0, endOffset: 5, periods: 8, freq: 4, contact: true },
   { name: 'Graça Mondlane', gender: 'FEMALE', plan: 1, endOffset: 7, periods: 2, freq: 2, email: true },
   // Vencem hoje
   { name: 'Ivone Cossa', gender: 'FEMALE', plan: 0, endOffset: 0, periods: 4, freq: 3, email: true },
@@ -96,6 +98,11 @@ export interface DemoDataInput {
    * as notificações ficam desactivadas para nunca contactar pessoas reais.
    */
   notificationsEnabled?: boolean;
+  /**
+   * Telefone real para testar mensagens (E.164 sem "+"). Fica no membro de teste, que tem as
+   * notificações activas mesmo quando `notificationsEnabled` é false para os restantes.
+   */
+  contactPhone?: string;
 }
 
 export async function createDemoData(tx: Tx, input: DemoDataInput) {
@@ -147,7 +154,8 @@ export async function createDemoData(tx: Tx, input: DemoDataInput) {
     const slug = (w: string) => w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
     const parts = s.name.split(' ');
     const email = s.email ? `${slug(parts[0])}.${slug(parts[parts.length - 1])}@exemplo.co.mz` : null;
-    const phone = `258${PREFIXES[index % PREFIXES.length]}${String(1000000 + index * 73129).slice(-7)}`;
+    const isContact = Boolean(s.contact && input.contactPhone);
+    const phone = isContact ? input.contactPhone! : `258${PREFIXES[index % PREFIXES.length]}${String(1000000 + index * 73129).slice(-7)}`;
 
     members.push({
       id: memberId,
@@ -164,7 +172,7 @@ export async function createDemoData(tx: Tx, input: DemoDataInput) {
       emergencyContactPhone: index % 3 === 0 ? `25884${between(1000000, 9999999)}` : null,
       notes: s.suspended ? 'Subscrição suspensa por lesão no joelho (atestado médico entregue).' : null,
       joinedAt: firstStart,
-      notificationsEnabled: input.notificationsEnabled !== false && !s.notificationsOff,
+      notificationsEnabled: isContact || (input.notificationsEnabled !== false && !s.notificationsOff),
     });
 
     let lastPaymentDate: string | null = null;

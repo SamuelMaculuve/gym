@@ -45,6 +45,7 @@ export function toMemberDTO(m: Member): MemberDTO {
     joinedAt: m.joinedAt,
     active: m.active,
     notificationsEnabled: m.notificationsEnabled,
+    archivedAt: m.archivedAt?.toISOString() ?? null,
     createdAt: m.createdAt.toISOString(),
     updatedAt: m.updatedAt.toISOString(),
   };

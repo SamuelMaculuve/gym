@@ -1,6 +1,6 @@
-import { ArrowLeft, Bell, BellOff, BellRing, CreditCard, MessageSquare, MoreVertical, Pause, Pencil, Play, QrCode, Repeat, UserCheck, UserX, XCircle } from 'lucide-react';
+import { Archive, ArchiveRestore, ArrowLeft, Bell, BellOff, BellRing, CreditCard, MessageSquare, MoreVertical, Pause, Pencil, Play, QrCode, Repeat, UserCheck, UserX, XCircle } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { toast } from 'sonner';
 import {
   ageOn,
@@ -47,7 +47,7 @@ import { SendMessageDialog } from '../notifications/SendMessageDialog';
 import { CancelPaymentDialog } from '../payments/CancelPaymentDialog';
 import { usePlans } from '../plans/hooks';
 import { useCreateSubscription, useSubscriptionAction } from '../subscriptions/hooks';
-import { useMember, useMemberQr, useRegenerateQr, useUpdateMember } from './hooks';
+import { useArchiveMember, useMember, useMemberQr, useRegenerateQr, useUpdateMember } from './hooks';
 import { MemberEditDrawer } from './MemberForm';
 
 type Tab = 'overview' | 'payments' | 'subscriptions' | 'notifications' | 'attendance';
@@ -94,6 +94,8 @@ function MemberHeader({ member }: { member: MemberDetail }) {
   const [editOpen, setEditOpen] = useState(false);
   const [messageOpen, setMessageOpen] = useState(false);
   const sub = member.currentSubscription;
+  const archived = Boolean(member.archivedAt);
+  const archive = useArchiveMember(member.id);
 
   return (
     <Card>
@@ -104,6 +106,11 @@ function MemberHeader({ member }: { member: MemberDetail }) {
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="truncate text-xl font-semibold">{member.fullName}</h1>
               <SubscriptionBadge status={sub?.status ?? null} />
+              {archived && (
+                <Badge tone="amber">
+                  <Archive className="h-3 w-3" /> Arquivado
+                </Badge>
+              )}
               {!member.active && <Badge tone="gray">Inactivo</Badge>}
               {!member.notificationsEnabled && (
                 <Badge tone="gray">
@@ -118,12 +125,21 @@ function MemberHeader({ member }: { member: MemberDetail }) {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          {can('payments:write') && (
+          {archived && can('members:write') && (
+            <Button
+              icon={<ArchiveRestore className="h-4 w-4" />}
+              loading={archive.isPending}
+              onClick={() => archive.mutateAsync(false).then(() => toast.success('Membro restaurado'), (e) => toast.error(errorMessage(e)))}
+            >
+              Restaurar membro
+            </Button>
+          )}
+          {!archived && can('payments:write') && (
             <Button icon={<CreditCard className="h-4 w-4" />} onClick={() => quick.openPayment(member.id)}>
               Registar pagamento
             </Button>
           )}
-          {(can('notifications:write') || can('members:write')) && sub && sub.state !== 'CANCELLED' && (
+          {!archived && (can('notifications:write') || can('members:write')) && sub && sub.state !== 'CANCELLED' && (
             <Button variant="outline" icon={<BellRing className="h-4 w-4" />} onClick={() => quick.openReminder(member.id)} disabled={!member.notificationsEnabled} title={member.notificationsEnabled ? undefined : 'Notificações desactivadas para este membro'}>
               Enviar lembrete
             </Button>
@@ -177,12 +193,15 @@ function QrModal({ memberId, open, onClose }: { memberId: string; open: boolean;
 function MoreActions({ member, onMessage }: { member: MemberDetail; onMessage: () => void }) {
   const { can } = useAuth();
   const [open, setOpen] = useState(false);
-  const [dialog, setDialog] = useState<null | 'suspend' | 'cancel' | 'plan'>(null);
+  const [dialog, setDialog] = useState<null | 'suspend' | 'cancel' | 'plan' | 'archive'>(null);
   const [reason, setReason] = useState('');
   const ref = useRef<HTMLDivElement>(null);
   const update = useUpdateMember(member.id);
   const action = useSubscriptionAction();
+  const archive = useArchiveMember(member.id);
+  const navigate = useNavigate();
   const sub = member.currentSubscription;
+  const archived = Boolean(member.archivedAt);
 
   useEffect(() => {
     if (!open) return;
@@ -241,6 +260,13 @@ function MoreActions({ member, onMessage }: { member: MemberDetail; onMessage: (
       danger: true,
       show: Boolean(sub && sub.state !== 'CANCELLED') && can('subscriptions:write'),
     },
+    {
+      label: 'Arquivar membro',
+      icon: <Archive className="h-4 w-4" />,
+      onClick: () => { setOpen(false); setDialog('archive'); },
+      danger: true,
+      show: !archived && can('members:write'),
+    },
   ].filter((i) => i.show);
 
   if (items.length === 0) return null;
@@ -266,10 +292,25 @@ function MoreActions({ member, onMessage }: { member: MemberDetail; onMessage: (
         description={dialog === 'cancel' ? 'Os lembretes param e o membro deixa de ter acesso. O histórico é mantido.' : 'Os lembretes ficam pausados e a entrada é bloqueada até reactivar.'}
         confirmLabel={dialog === 'cancel' ? 'Cancelar subscrição' : 'Suspender'}
         loading={action.isPending}
-        onConfirm={() => sub && dialog && dialog !== 'plan' && run(() => action.mutateAsync({ id: sub.id, action: dialog, reason }), dialog === 'cancel' ? 'Subscrição cancelada' : 'Subscrição suspensa').then(() => setDialog(null))}
+        onConfirm={() => sub && (dialog === 'suspend' || dialog === 'cancel') && run(() => action.mutateAsync({ id: sub.id, action: dialog, reason }), dialog === 'cancel' ? 'Subscrição cancelada' : 'Subscrição suspensa').then(() => setDialog(null))}
       >
         <Textarea label="Motivo (opcional)" rows={2} value={reason} onChange={(e) => setReason(e.target.value)} />
       </ConfirmDialog>
+      <ConfirmDialog
+        open={dialog === 'archive'}
+        onClose={() => setDialog(null)}
+        tone="danger"
+        title={`Arquivar ${member.fullName}?`}
+        description="Sai das listas, do dashboard, dos lembretes e do check-in. Pagamentos, presenças e mensagens ficam no histórico e nos relatórios. Pode restaurá-lo a qualquer momento em Membros → Arquivados."
+        confirmLabel="Arquivar"
+        loading={archive.isPending}
+        onConfirm={() =>
+          run(() => archive.mutateAsync(true), 'Membro arquivado').then(() => {
+            setDialog(null);
+            navigate('/members');
+          })
+        }
+      />
       <ChangePlanModal member={member} open={dialog === 'plan'} onClose={() => setDialog(null)} />
     </div>
   );

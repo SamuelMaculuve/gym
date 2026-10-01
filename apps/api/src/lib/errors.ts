@@ -14,3 +14,8 @@ export const unauthorized = (message = 'Sessão inválida ou expirada') => new H
 export const forbidden = (message = 'Não tem permissão para esta operação') => new HttpError(403, 'FORBIDDEN', message);
 export const notFound = (message = 'Registo não encontrado') => new HttpError(404, 'NOT_FOUND', message);
 export const conflict = (message: string) => new HttpError(409, 'CONFLICT', message);
+
+/** Membros arquivados não podem pagar, fazer check-in nem receber mensagens até serem restaurados. */
+export function assertNotArchived(member: { archivedAt: Date | null; fullName: string }) {
+  if (member.archivedAt) throw badRequest(`${member.fullName} está arquivado. Restaure-o em Membros → Arquivados para continuar.`);
+}

@@ -63,7 +63,7 @@ export async function createSubscriptionPeriod(
 
 export async function listSubscriptions(ctx: GymContext, query: SubscriptionListQuery & { page: number; pageSize: number }) {
   const members = await prisma.member.findMany({
-    where: { gymId: ctx.gym.id, currentSubscriptionId: { not: null }, ...(query.planId ? { currentSubscription: { planId: query.planId } } : {}) },
+    where: { gymId: ctx.gym.id, archivedAt: null, currentSubscriptionId: { not: null }, ...(query.planId ? { currentSubscription: { planId: query.planId } } : {}) },
     select: { lastPaymentDate: true, fullName: true, code: true, phone: true, currentSubscription: { include: subscriptionInclude } },
     orderBy: { fullName: 'asc' },
   });

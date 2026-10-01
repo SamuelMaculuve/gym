@@ -125,6 +125,8 @@ model Member {
   joinedAt              String
   active                Boolean  @default(true)
   notificationsEnabled  Boolean  @default(true)
+  /// Arquivado: sai das listas, lembretes e check-in; o histórico mantém-se. Pode ser restaurado.
+  archivedAt            DateTime?
   /// Desnormalizado: período actual (mantido por refreshMemberDerived)
   currentSubscriptionId String?       @unique
   currentSubscription   Subscription? @relation("CurrentSubscription", fields: [currentSubscriptionId], references: [id])

@@ -34,6 +34,12 @@ export function useUpdateMember(id: string) {
   return useMutation({ mutationFn: (input: MemberUpdateInput) => api.members.update(id, input), onSuccess: invalidate });
 }
 
+/** Arquiva (archived = true) ou restaura um membro. */
+export function useArchiveMember(id: string) {
+  const invalidate = useInvalidateBusiness();
+  return useMutation({ mutationFn: (archived: boolean) => (archived ? api.members.archive(id) : api.members.restore(id)), onSuccess: invalidate });
+}
+
 export function useRegenerateQr(id: string) {
   const qc = useQueryClient();
   return useMutation({ mutationFn: () => api.members.regenerateQr(id), onSuccess: (data) => qc.setQueryData(qk.memberQr(id), data) });

@@ -1,5 +1,6 @@
-import { Bell, FileText, Play, Send } from 'lucide-react';
+import { Bell, FileText, Megaphone, Play, Send } from 'lucide-react';
 import { useState } from 'react';
+import { BroadcastDialog } from './BroadcastDialog';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
 import {
@@ -27,6 +28,7 @@ import { useNotifications, useRunReminders } from './hooks';
 export function NotificationsPage() {
   const f = useFormat();
   const { can } = useAuth();
+  const [broadcastOpen, setBroadcastOpen] = useState(false);
   const settings = useSettings();
   const [q, setQ] = useState('');
   const [channel, setChannel] = useState<NotificationChannel | ''>('');
@@ -68,6 +70,7 @@ export function NotificationsPage() {
   const providers = settings.data?.providers;
   return (
     <>
+      <BroadcastDialog open={broadcastOpen} onClose={() => setBroadcastOpen(false)} />
       <PageHeader
         title="Notificações"
         description="Histórico de lembretes e mensagens enviadas por WhatsApp, email e SMS."
@@ -77,8 +80,13 @@ export function NotificationsPage() {
               <Button variant="outline" icon={<FileText className="h-4 w-4" />}>Templates</Button>
             </Link>
             {can('notifications:write') && (
-              <Button icon={<Play className="h-4 w-4" />} onClick={() => doRun(true)} loading={run.isPending && run.variables === true}>
+              <Button variant="outline" icon={<Play className="h-4 w-4" />} onClick={() => doRun(true)} loading={run.isPending && run.variables === true}>
                 Executar lembretes
+              </Button>
+            )}
+            {(can('notifications:write') || can('members:write')) && (
+              <Button icon={<Megaphone className="h-4 w-4" />} onClick={() => setBroadcastOpen(true)}>
+                Mensagem a todos
               </Button>
             )}
           </>

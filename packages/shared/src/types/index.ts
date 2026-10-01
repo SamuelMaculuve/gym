@@ -13,6 +13,7 @@ import type {
   SubscriptionStatus,
 } from '../constants';
 import type { AttendanceStats } from '../domain/attendance';
+import type { BroadcastAudience } from '../schemas/notification';
 import type { ISODate } from '../domain/dates';
 import type { ReminderSettings } from '../domain/reminders';
 import type { StatusRules } from '../domain/subscription-status';
@@ -154,6 +155,7 @@ export interface MemberListItem {
   lastPaymentDate: ISODate | null;
   subscriptionId: string | null;
   notificationsEnabled: boolean;
+  archivedAt: ISODateTime | null;
 }
 
 export interface MemberDTO {
@@ -171,6 +173,7 @@ export interface MemberDTO {
   joinedAt: ISODate;
   active: boolean;
   notificationsEnabled: boolean;
+  archivedAt: ISODateTime | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 }
@@ -296,6 +299,25 @@ export interface TemplateDTO {
 export interface ReminderSendResult {
   type: NotificationType;
   notifications: NotificationDTO[];
+  sent: number;
+  failed: number;
+  skipped: number;
+}
+
+/** Envio em massa: pré-visualização (dryRun) ou resultado. */
+export interface BroadcastResult {
+  channel: NotificationChannel;
+  audience: BroadcastAudience;
+  dryRun: boolean;
+  /** Membros no público escolhido. */
+  total: number;
+  /** Membros que vão receber (ou receberam) a mensagem. */
+  recipients: number;
+  /** Primeiros destinatários, para confirmar antes de enviar. */
+  sample: string[];
+  excluded: { noContact: number; notificationsOff: number; noSubscription: number };
+  /** Fornecedor do canal; `real: false` = modo de teste (só regista, não entrega). */
+  provider: { name: string; configured: boolean; real: boolean };
   sent: number;
   failed: number;
   skipped: number;

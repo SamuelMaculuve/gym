@@ -108,7 +108,8 @@ Passos:
 2. Em **Site configuration → Environment variables** defina:
    - `SETUP_TOKEN`: um código longo e aleatório, pedido no assistente de configuração
    - `CRON_SECRET` (opcional)
-   - os fornecedores de notificações (`WHATSAPP_*`, `SMTP_*`, `EMAIL_PROVIDER`…)
+   - os fornecedores de notificações (`WHATSAPP_*`, `SMTP_*`, `EMAIL_PROVIDER`…). **Email grátis:** `EMAIL_PROVIDER=smtp`, `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=587`, `SMTP_USER=<o seu gmail>`, `SMTP_PASSWORD=<palavra-passe de aplicação>` e `EMAIL_FROM=<nome> <o seu gmail>` (no Gmail: Conta Google → Segurança → Palavras-passe de aplicação; ~500 emails/dia)
+   - `DEMO_CONTACT_PHONE` (opcional, modo demonstração): número real que recebe as mensagens de teste; por omissão 844552968. É o único membro da demo com notificações activas
 
    - `DATABASE_URL` (opcional): Postgres para dados persistentes. Sem ela, o site funciona em modo demonstração.
 3. Faça o deploy.
